@@ -27,7 +27,7 @@ python3 -m http.server 8080
 ### The city
 - A hand-built low-poly city with distinct districts, roads, parks and landmarks — Cathedral Square, City Museum, Crupa Arena, Crupa Court, Block 12, the East Freight Depot, the Hilltop Observatory and the military complex at Fort Crupa.
 - Full day/night cycle with weather, working street lighting and a dusk-toned art direction.
-- Traffic and pedestrians that go about their business, react to crime and get out of your way.
+- Traffic and a living crowd: every pedestrian has their own stride and posture, and people walk dogs, jog, shoot hoops, smoke, fold their arms, check their phones or stop to chat in pairs. They duck when shots land near them, glance at the noise, and scatter when things turn ugly.
 
 ### Driving
 - Cars, vans, police cruisers, a Humvee and a drivable tank.
