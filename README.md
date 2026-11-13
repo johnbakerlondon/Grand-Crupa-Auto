@@ -106,6 +106,16 @@ On phones and tablets a left-side thumbstick handles movement, dragging the righ
 
 ---
 
+## Credits
+
+**Produced by Clasa 80 Studio**
+
+With help from Claude · Perplexity · DeepSeek · ChatGPT
+
+Built and released by [@johnbakerlondon](https://github.com/johnbakerlondon). Everything in the game — city, vehicles, characters, weapons and music — is generated in the browser.
+
+---
+
 ## Disclaimer
 
 Grand Crupa Auto is an original fan-made project. It is not affiliated with, endorsed by or connected to Rockstar Games or Take-Two Interactive, and contains no assets from the Grand Theft Auto series. All geometry, code and audio are generated procedurally in the browser.
