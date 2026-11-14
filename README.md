@@ -26,7 +26,7 @@ python3 -m http.server 8080
 
 ### The city
 - A hand-built low-poly city with distinct districts, roads, parks and landmarks — Cathedral Square, City Museum, Crupa Arena, Crupa Court, Block 12, the East Freight Depot, the Hilltop Observatory and the military complex at Fort Crupa.
-- Full day/night cycle with weather, working street lighting and a dusk-toned art direction — a strong side key light with soft shadow falloff, a cool rim light behind everything for silhouettes, warm lit windows and lamp pools after dark (street lamps stand on the ground and their pools lie flat on it, following hills and slopes), hazy aerial perspective on the skyline, and a soft cinematic vignette over the whole view, with a real bloom pass so lamp heads, headlights, lit windows and neon bloom into the night haze.
+- Full day/night cycle with weather, working street lighting and a dusk-toned art direction — a strong side key light with soft shadow falloff, a cool rim light behind everything for silhouettes, warm lit windows and lamp pools after dark (street lamps stand on the ground and their pools lie flat on it, following hills and slopes); rain showers that fall as a field fixed to the map, so the streaks stay where they are and you walk through them rather than carrying the storm with you, with splashes on the pavement and roads that darken and shine as they get wet, hazy aerial perspective on the skyline, and a soft cinematic vignette over the whole view, with a real bloom pass so lamp heads, headlights, lit windows and neon bloom into the night haze.
 - A full-size **basketball court** just east of the fountain plaza: painted lines, centre circle, three-point arcs, two hoops with nets and backboards, and benches along the side. Pedestrians wander over, dribble up to a hoop and shoot at the rim.
 - **Pigeons** wheel overhead in loose flocks, banking into their turns and beating their wings, staying around you as you move through the city and keeping to the ground rather than flying into the hills. When things are quiet a flock drops down onto the pavement near you, folds its wings, shuffles about and pecks at the ground, and bursts back into the air when you get too close - from the moment you are within a few steps, or further out if you are running, and they scatter hard if you sprint straight through the middle of them. Fire a gun and the flock blows upward, climbing well above its usual height with wings beating hard before it settles back into its circle.
 - Pedestrians dive aside when a car bears down on them, then pick themselves up and carry on.
@@ -111,13 +111,14 @@ On phones and tablets a left-side thumbstick handles movement, dragging the righ
 
 ## Tests
 
-Two headless regression suites pull the relevant functions straight out of the
+Four headless regression suites pull the relevant functions straight out of the
 game file and run them against stub rigs. No dependencies, no browser:
 
 ```bash
 node tests/ped-check.mjs
 node tests/vehicle-check.mjs
 node tests/bird-check.mjs
+node tests/rain-check.mjs
 ```
 
 The pedestrian suite covers the head pivot clamp, gait and idle variation,
@@ -125,7 +126,7 @@ spotting, fleeing and ducking, every pedestrian activity, court shooting, and
 the traffic dodge. The vehicle suite covers tyre marks (when they appear, their
 spacing, the 90 m distance gate and cleanup), brake lights (lazy creation,
 sharing, placement, when they light up), and crash damage (armour, wrecking and
-the wreck hook, and exhaust backfires). The bird suite covers flock flight: orbiting the flock centre, climbing off the floor, the speed cap, separation, bank and pitch limits, wing beat, facing the direction of travel, and flocks relocating to the player when left behind, plus gunfire and exhaust backfires scattering the nearby flock upward, and landing: when a flock comes down, how it settles, folds its wings and pecks, that it waits for its timer and stays airborne when spooked or far away, and that a take-off lifts every bird. It also checks the scare radius: that walking gives the flock more room than standing still, that sprinting scares them from further out, that a fast player counts even without the sprint toggle, and that the radius never shrinks as you speed up.
+the wreck hook, and exhaust backfires). The bird suite covers flock flight: orbiting the flock centre, climbing off the floor, the speed cap, separation, bank and pitch limits, wing beat, facing the direction of travel, and flocks relocating to the player when left behind, plus gunfire and exhaust backfires scattering the nearby flock upward, and landing: when a flock comes down, how it settles, folds its wings and pecks, that it waits for its timer and stays airborne when spooked or far away, and that a take-off lifts every bird. It also checks the scare radius: that walking gives the flock more room than standing still, that sprinting scares them from further out, that a fast player counts even without the sprint toggle, and that the radius never shrinks as you speed up. The rain suite covers the weather field: that every drop holds a fixed world column instead of riding along with the player, that only drops at the edge of the field re-wrap (by exactly one cell) as you walk, that rain falls and wraps back to the top without sinking into the ground or climbing above its fall column, the streak shape, and that the splashes stay on their own patches of ground and blink rather than teleporting.
 
 ## Credits
 
