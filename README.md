@@ -26,7 +26,7 @@ python3 -m http.server 8080
 
 ### The city
 - A hand-built low-poly city with distinct districts, roads, parks and landmarks — Cathedral Square, City Museum, Crupa Arena, Crupa Court, Block 12, the East Freight Depot, the Hilltop Observatory and the military complex at Fort Crupa.
-- Full day/night cycle with weather, working street lighting and a dusk-toned art direction — a strong side key light with soft shadow falloff, a cool rim light behind everything for silhouettes, warm lit windows and lamp pools after dark, hazy aerial perspective on the skyline, and a soft cinematic vignette over the whole view.
+- Full day/night cycle with weather, working street lighting and a dusk-toned art direction — a strong side key light with soft shadow falloff, a cool rim light behind everything for silhouettes, warm lit windows and lamp pools after dark, hazy aerial perspective on the skyline, and a soft cinematic vignette over the whole view, with a real bloom pass so lamp heads, headlights, lit windows and neon bloom into the night haze.
 - A full-size **basketball court** just east of the fountain plaza: painted lines, centre circle, three-point arcs, two hoops with nets and backboards, and benches along the side. Pedestrians wander over, dribble up to a hoop and shoot at the rim.
 - Traffic and a living crowd: every pedestrian has their own stride and posture, and people walk dogs, jog, shoot hoops, smoke, fold their arms, check their phones or stop to chat in pairs. They duck when shots land near them, glance at the noise, and scatter when things turn ugly.
 
