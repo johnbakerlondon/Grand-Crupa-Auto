@@ -28,6 +28,7 @@ python3 -m http.server 8080
 - A hand-built low-poly city with distinct districts, roads, parks and landmarks — Cathedral Square, City Museum, Crupa Arena, Crupa Court, Block 12, the East Freight Depot, the Hilltop Observatory and the military complex at Fort Crupa.
 - Full day/night cycle with weather, working street lighting and a dusk-toned art direction — a strong side key light with soft shadow falloff, a cool rim light behind everything for silhouettes, warm lit windows and lamp pools after dark, hazy aerial perspective on the skyline, and a soft cinematic vignette over the whole view, with a real bloom pass so lamp heads, headlights, lit windows and neon bloom into the night haze.
 - A full-size **basketball court** just east of the fountain plaza: painted lines, centre circle, three-point arcs, two hoops with nets and backboards, and benches along the side. Pedestrians wander over, dribble up to a hoop and shoot at the rim.
+- **Pigeons** wheel overhead in loose flocks, banking into their turns and beating their wings, staying around you as you move through the city and keeping to the ground rather than flying into the hills.
 - Pedestrians dive aside when a car bears down on them, then pick themselves up and carry on.
 - Traffic and a living crowd: every pedestrian has their own stride and posture, and people walk dogs, jog, shoot hoops, smoke, fold their arms, check their phones or stop to chat in pairs. They duck when shots land near them, glance at the noise, and scatter when things turn ugly.
 
@@ -116,6 +117,7 @@ game file and run them against stub rigs. No dependencies, no browser:
 ```bash
 node tests/ped-check.mjs
 node tests/vehicle-check.mjs
+node tests/bird-check.mjs
 ```
 
 The pedestrian suite covers the head pivot clamp, gait and idle variation,
@@ -123,7 +125,7 @@ spotting, fleeing and ducking, every pedestrian activity, court shooting, and
 the traffic dodge. The vehicle suite covers tyre marks (when they appear, their
 spacing, the 90 m distance gate and cleanup), brake lights (lazy creation,
 sharing, placement, when they light up), and crash damage (armour, wrecking and
-the wreck hook).
+the wreck hook). The bird suite covers flock flight: orbiting the flock centre, climbing off the floor, the speed cap, separation, bank and pitch limits, wing beat, facing the direction of travel, and flocks relocating to the player when left behind.
 
 ## Credits
 
