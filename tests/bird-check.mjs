@@ -29,8 +29,16 @@ function extractFn(src, name) {
 }
 
 const api = new Function(
-  extractFn(html, '_gcaBirdStep') + '\n' + extractFn(html, '_gcaBirdHome') + `
-  return { step: _gcaBirdStep, home: _gcaBirdHome };`,
+  'var _gcaBirdsS=null;\n' +
+  extractFn(html, '_gcaBirdStep') + '\n' +
+  extractFn(html, '_gcaBirdHome') + '\n' +
+  extractFn(html, '_gcaScatter') + `
+  return {
+    step: _gcaBirdStep,
+    home: _gcaBirdHome,
+    scatter: _gcaScatter,
+    setState: function (s) { _gcaBirdsS = s },
+  };`,
 )();
 
 function makeBird(over = {}) {
@@ -177,6 +185,81 @@ check('a flock stays put while the player is close', () => {
   const moved = api.home(f, 120, 60, 260);
   assert(moved === false, 'flock jumped while the player was nearby');
   assert(f.cx === 0 && f.cz === 0);
+});
+
+/* ---------------- panic and scattering ---------------- */
+
+function world(birds) {
+  const b = birds.map(o => makeBird(o));
+  api.setState({ flocks: [{ cx: 0, cz: 0, cy: 13, ang: 0, b }] });
+  return b;
+}
+
+check('a bang panics every bird within earshot', () => {
+  const b = world([{ x: 5, y: 10, z: 0 }, { x: 20, y: 10, z: 0 }, { x: 0, y: 10, z: 30 }]);
+  const n = api.scatter(0, 0, 60);
+  assert(n === 3, 'panicked ' + n + ' birds');
+  assert(b.every(x => x.panic > 0), 'a bird stayed calm');
+});
+check('birds out of earshot ignore the bang', () => {
+  const b = world([{ x: 5, y: 10, z: 0 }, { x: 400, y: 10, z: 0 }]);
+  const n = api.scatter(0, 0, 60);
+  assert(n === 1, 'panicked ' + n + ' birds');
+  assert(!b[1].panic && b[1].vx === 0 && b[1].vy === 0 && b[1].vz === 0, 'a distant bird reacted');
+});
+check('the bang throws birds upward and away', () => {
+  const b = world([{ x: 6, y: 10, z: 0 }]);
+  api.scatter(0, 0, 60);
+  assert(b[0].vy > 4, 'no upward kick: vy=' + b[0].vy);
+  assert(b[0].vx > 2, 'not pushed outward: vx=' + b[0].vx);
+});
+check('birds nearer the bang panic harder', () => {
+  const b = world([{ x: 3, y: 10, z: 0 }, { x: 55, y: 10, z: 0 }]);
+  api.scatter(0, 0, 60);
+  assert(b[0].panic > b[1].panic, 'near ' + b[0].panic.toFixed(2) + ' vs far ' + b[1].panic.toFixed(2));
+  assert(b[0].vy > b[1].vy, 'near bird not thrown harder');
+});
+check('scared birds climb above their cruising height', () => {
+  const b = world([{ x: 4, y: 10, z: 0, h: 10, r: 6 }]);
+  const f = { cx: 0, cz: 0 };
+  api.scatter(0, 0, 60);
+  let peak = b[0].y;
+  let t = 0;
+  for (let i = 0; i < 90; i++) { t += 1 / 60; api.step(f, b[0], 1 / 60, t, 0, null); peak = Math.max(peak, b[0].y); }
+  assert(peak > 16, 'only reached ' + peak.toFixed(1) + ' m');
+});
+check('they settle back down once the panic passes', () => {
+  const b = world([{ x: 4, y: 10, z: 0, h: 10, r: 6 }]);
+  const f = { cx: 0, cz: 0 };
+  api.scatter(0, 0, 60);
+  let t = 0;
+  for (let i = 0; i < 240; i++) { t += 1 / 60; api.step(f, b[0], 1 / 60, t, 0, null); }
+  assert(b[0].panic <= 0, 'still panicking');
+  for (let i = 0; i < 600; i++) { t += 1 / 60; api.step(f, b[0], 1 / 60, t, 0, null); }
+  assert(b[0].y < 16, 'never came back down: ' + b[0].y.toFixed(1) + ' m');
+});
+check('panic is bounded and decays', () => {
+  const b = world([{ x: 1, y: 10, z: 0 }]);
+  api.scatter(0, 0, 60);
+  const first = b[0].panic;
+  api.scatter(0, 0, 60);
+  assert(b[0].panic <= Math.max(first, 2.2) + 1e-9, 'panic stacked without limit: ' + b[0].panic);
+  const f = { cx: 0, cz: 0 };
+  let t = 0;
+  for (let i = 0; i < 300; i++) { t += 1 / 60; api.step(f, b[0], 1 / 60, t, 0, null); }
+  assert(b[0].panic < 0, 'panic never ran out (' + b[0].panic.toFixed(2) + ')');
+});
+check('frightened birds beat their wings faster', () => {
+  const calm = world([{ x: 4, y: 10, z: 0 }]);
+  const f = { cx: 0, cz: 0 };
+  let t = 0, calmPeak = 0;
+  for (let i = 0; i < 60; i++) { t += 1 / 60; api.step(f, calm[0], 1 / 60, t, 0, null); calmPeak = Math.max(calmPeak, Math.abs(calm[0].flap)); }
+  const scared = world([{ x: 4, y: 10, z: 0 }]);
+  api.scatter(0, 0, 60);
+  let scaredPeak = 0;
+  t = 0;
+  for (let i = 0; i < 60; i++) { t += 1 / 60; api.step(f, scared[0], 1 / 60, t, 0, null); scaredPeak = Math.max(scaredPeak, Math.abs(scared[0].flap)); }
+  assert(scaredPeak > calmPeak, 'flap ' + scaredPeak.toFixed(2) + ' vs ' + calmPeak.toFixed(2));
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);

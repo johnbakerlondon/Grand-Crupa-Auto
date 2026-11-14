@@ -44,6 +44,7 @@ const fns = [
   extractFn(html, '_gcaSkid'),
   extractFn(html, '_gcaCarLights'),
   extractMethod(html, 'damage(t,e,n="crash"){'),
+  extractFn(html, '_gcaBackfire'),
 ].join('\n');
 
 /* ---------------- stubs ---------------- */
@@ -65,13 +66,20 @@ class StubMat { constructor(o = {}) { Object.assign(this, o); } }
 const THREE = { Mesh: StubMesh, PlaneGeometry: StubGeo, MeshBasicMaterial: StubMat, AdditiveBlending: 2, DoubleSide: 2 };
 
 const playerPos = { x: 0, z: 0 };
-const fx = { smoked: 0, smoke() { this.smoked++; } };
+const fx = { smoked: 0, emits: 0, smoke() { this.smoked++; }, emit() { this.emits++; } };
+const audio = { bangs: 0, gun() { this.bangs++; } };
+const scatters = [];
+
+// deterministic randomness, so a bang either always happens or never does
+const rnd = { v: 0 };   // conditions are opt-in: 0 fires, 1 never does
+const MathStub = Object.create(Math);
+MathStub.random = () => rnd.v;
 
 const api = new Function(
-  'window', 'ae', 'vi', 'R',
-  'var _gcaSkidSys=null, _gcaBrakeMat=null, _gcaSkidTmp=0;\n' + fns + `
+  'window', 'ae', 'vi', 'R', 'Et', 'Math', 'scatter',
+  'var _gcaSkidSys=null, _gcaBrakeMat=null;\nvar _gcaScatter=scatter;\n' + fns + `
   return {
-    _gcaSkid, _gcaCarLights, damage,
+    _gcaSkid, _gcaCarLights, _gcaBackfire, damage,
     setSkid: function (s) { _gcaSkidSys = s },
     getMat: function () { return _gcaBrakeMat },
   };`,
@@ -80,6 +88,9 @@ const api = new Function(
   { groundHeight: () => 0.15 },
   fx,
   { pos: playerPos },
+  audio,
+  MathStub,
+  (x, z, r) => { scatters.push({ x, z, r }); return 1; },
 );
 
 const V = api;
@@ -331,6 +342,69 @@ check('zero or negative damage is ignored', () => {
 });
 
 /* ---------------- report ---------------- */
+
+/* ---------------- exhaust backfire ---------------- */
+
+function bang(over = {}, random = 0) {
+  rnd.v = random;
+  fx.emits = 0; fx.smoked = 0; audio.bangs = 0; scatters.length = 0;
+  at(0, 0);
+  const v = makeVehicle({ speed: 12, throttle: 0, state: 'player', ...over });
+  const fired = V._gcaBackfire(v, 1 / 60);
+  return { v, fired };
+}
+
+check('a crawling car does not backfire', () => {
+  const { fired } = bang({ speed: 3 });
+  assert(fired === false);
+});
+check('a car on the throttle does not backfire', () => {
+  const { fired } = bang({ throttle: 0.8 });
+  assert(fired === false);
+});
+check('a wrecked car does not backfire', () => {
+  const { fired } = bang({ wreck: true });
+  assert(fired === false);
+});
+check('distant cars do not backfire', () => {
+  const { fired } = bang({ x: 300, z: 300 });
+  assert(fired === false);
+});
+check('a coasting car backfires from its exhaust', () => {
+  const { v, fired } = bang();
+  assert(fired === true, 'no bang');
+  assert(scatters.length === 1, 'scattered ' + scatters.length + ' times');
+  const s = scatters[0];
+  assert(s.z < v.z, 'flame is not behind the car');
+  assert(s.r === 40, 'scatter radius is ' + s.r);
+  assert(fx.emits > 0, 'no flame');
+});
+check('the backfire is heard up close but not down the road', () => {
+  const near = bang();
+  assert(audio.bangs === 1, 'near car was silent');
+  const far = bang({ x: 38, z: 0 });
+  assert(far.fired === true, 'far car did not backfire at all');
+  assert(audio.bangs === 0, 'bang carried 38 m');
+});
+check('a backfire puts the car on cooldown', () => {
+  const { v, fired } = bang();
+  assert(fired === true);
+  const again = V._gcaBackfire(v, 1 / 60);
+  assert(again === false, 'backfired twice in a row');
+  assert(v._gcaBf > 0, 'no cooldown recorded');
+});
+check('the cooldown runs out', () => {
+  const { v } = bang();
+  rnd.v = 1;                        // stop it re-firing while we wait
+  for (let i = 0; i < 400; i++) V._gcaBackfire(v, 1 / 60);
+  assert(v._gcaBf <= 0, 'cooldown never expired');
+});
+check('traffic backfires far more rarely than the player', () => {
+  const p = bang({}, 0.006);
+  assert(p.fired === true, 'player car stayed quiet');
+  const t = bang({ state: 'traffic' }, 0.006);
+  assert(t.fired === false, 'traffic fired just as often');
+});
 
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failures.length) {
