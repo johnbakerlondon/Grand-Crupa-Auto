@@ -108,6 +108,18 @@ On phones and tablets a left-side thumbstick handles movement, dragging the righ
 
 ---
 
+## Tests
+
+The pedestrian and crowd systems have a headless regression suite that pulls the
+relevant functions straight out of the game file and runs them against a stub rig:
+
+```bash
+node tests/ped-check.mjs
+```
+
+It covers the head pivot clamp, gait and idle variation, spotting, fleeing and
+ducking, every pedestrian activity, court shooting, and the traffic dodge.
+
 ## Credits
 
 **Produced by Clasa 80 Studio**
