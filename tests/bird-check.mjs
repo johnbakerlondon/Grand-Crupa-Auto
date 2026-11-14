@@ -31,7 +31,7 @@ function extractFn(src, name) {
 const api = new Function(
   'var _gcaBirdsS=null;\n' +
   ['_gcaBirdStep', '_gcaBirdHome', '_gcaScatter', '_gcaBirdGround',
-   '_gcaBirdShouldLand', '_gcaBirdLand', '_gcaBirdTakeoff']
+   '_gcaBirdShouldLand', '_gcaBirdLand', '_gcaBirdTakeoff', '_gcaBirdSpookRadius']
     .map(n => extractFn(html, n)).join('\n') + `
   return {
     step: _gcaBirdStep,
@@ -41,6 +41,7 @@ const api = new Function(
     shouldLand: _gcaBirdShouldLand,
     land: _gcaBirdLand,
     takeoff: _gcaBirdTakeoff,
+    spookRadius: _gcaBirdSpookRadius,
     setState: function (s) { _gcaBirdsS = s },
   };`,
 )();
@@ -366,6 +367,30 @@ check('a scare lifts a settled bird mid-step', () => {
   api.step(f, b, 1 / 60, 0, GY, null);
   assert(b.g === 0, 'bird stayed grounded through a scare');
   assert(b.vy > 0, 'no upward kick');
+});
+
+/* ---------------- how close is too close ---------------- */
+
+check('standing still does not spook birds until you are on top of them', () => {
+  assert(api.spookRadius(0, false) === 6);
+});
+check('walking gives the flock more room', () => {
+  assert(api.spookRadius(2.5, false) === 8, 'radius ' + api.spookRadius(2.5, false));
+});
+check('sprinting scares them from further away', () => {
+  assert(api.spookRadius(0, true) === 11);
+  assert(api.spookRadius(7, true) === 11);
+});
+check('a fast player scares birds even without the sprint flag', () => {
+  assert(api.spookRadius(6, false) === 11, 'radius ' + api.spookRadius(6, false));
+});
+check('the scare radius never shrinks as you speed up', () => {
+  let last = 0;
+  for (let v = 0; v <= 10; v += 0.25) {
+    const r = api.spookRadius(v, false);
+    assert(r >= last, 'radius dropped at ' + v.toFixed(2) + ' m/s');
+    last = r;
+  }
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);

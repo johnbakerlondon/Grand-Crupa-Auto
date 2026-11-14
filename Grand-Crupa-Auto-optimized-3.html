@@ -5355,6 +5355,11 @@ function _gcaBirdGround(f,b,dt,t,gy){
   b.vx=b.vy=b.vz=0;
   return b;
 }
+function _gcaBirdSpookRadius(pspd,sprinting){
+  if(sprinting||pspd>5.5)return 11;
+  if(pspd>1.5)return 8;
+  return 6;
+}
 function _gcaBirdShouldLand(f,dt,px,pz,anyPanic){
   if(f.ground)return false;
   f.landT-=dt;
@@ -5518,6 +5523,8 @@ function _gcaBirds(dt,pl){
   var px=0,pz=0,gy=0;
   try{ if(typeof R!=="undefined"&&R&&R.pos){ px=R.pos.x; pz=R.pos.z } else if(pl&&pl.pos){ px=pl.pos.x; pz=pl.pos.z } }catch(e){}
   try{ if(ae&&ae.groundHeight) gy=ae.groundHeight(px,pz)||0 }catch(e){}
+  var pspd=0, psprint=false;
+  try{ if(typeof R!=="undefined"&&R){ pspd=Math.abs(R.speed||0); psprint=!!R.sprinting } }catch(e){}
   S.t+=dt;
   var idx=0;
   for(var fi=0;fi<S.flocks.length;fi++){
@@ -5529,9 +5536,10 @@ function _gcaBirds(dt,pl){
     for(var pi=0;pi<f.b.length;pi++)if(f.b[pi].panic>0){ anyPanic=true; break }
     if(_gcaBirdShouldLand(f,dt,px,pz,anyPanic))_gcaBirdLand(f,px,pz);
     else if(f.ground){
-      var spook=anyPanic||Math.hypot(f.lx-px,f.lz-pz)<8;
-      if(!spook)for(var si=0;si<f.b.length;si++){ var gb=f.b[si]; if(gb.g===1&&Math.hypot(gb.x-px,gb.z-pz)<6){ spook=true; break } }
-      if(spook)_gcaBirdTakeoff(f);
+      var spookR=_gcaBirdSpookRadius(pspd,psprint);
+      var spook=anyPanic||Math.hypot(f.lx-px,f.lz-pz)<spookR;
+      if(!spook)for(var si=0;si<f.b.length;si++){ var gb=f.b[si]; if(gb.g===1&&Math.hypot(gb.x-px,gb.z-pz)<spookR-2){ spook=true; break } }
+      if(spook){ _gcaBirdTakeoff(f); if(!anyPanic&&(psprint||pspd>5.5))_gcaScatter(px,pz,13) }
     }
     for(var i=0;i<f.b.length;i++){
       var b=f.b[i];
