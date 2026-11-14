@@ -5335,6 +5335,55 @@ var _gcaBloomOff=!1, _gcaBloomMul=1;
 
 /* ---- GCA: pigeons ---- */
 var _gcaBirdsS=null;
+function _gcaBirdGround(f,b,dt,t,gy){
+  var ty=gy+.14;
+  b.y+=(ty-b.y)*Math.min(1,dt*7);
+  if(b.y<ty)b.y=ty;
+  var sx=b.gx-b.x, sz=b.gz-b.z, d=Math.hypot(sx,sz);
+  if(b.shuf>0)b.shuf-=dt;
+  if(d>.3&&b.shuf<=0){
+    var sp=Math.min(1.05,d*2.2);
+    b.x+=sx/d*sp*dt; b.z+=sz/d*sp*dt;
+    b.yaw+=Math.sin(t*2.4+b.ph)*dt*2.6;
+  }
+  if(b.shuf<=0&&Math.random()<dt*.5)b.shuf=.5+Math.random()*1.4;
+  var dip=Math.sin(t*1.6+b.ph);
+  b.peck=dip>.6?Math.sin(t*10+b.ph)*.5+.3:.03;
+  b.pitch=b.peck;
+  b.roll=0;
+  b.flap=1.34+Math.sin(t*2+b.ph)*.07;
+  b.vx=b.vy=b.vz=0;
+  return b;
+}
+function _gcaBirdShouldLand(f,dt,px,pz,anyPanic){
+  if(f.ground)return false;
+  f.landT-=dt;
+  if(f.landT>0||anyPanic)return false;
+  var d=Math.hypot(f.cx-px,f.cz-pz);
+  if(d>75)return false;
+  return true;
+}
+function _gcaBirdLand(f,px,pz){
+  f.ground=true;
+  var a=Math.random()*Math.PI*2, r=9+Math.random()*7;
+  f.lx=px+Math.cos(a)*r; f.lz=pz+Math.sin(a)*r;
+  for(var i=0;i<f.b.length;i++){
+    var b=f.b[i], k=i*(Math.PI*2/f.b.length);
+    b.gx=f.lx+Math.cos(k)*(1.1+(i%3)*.45);
+    b.gz=f.lz+Math.sin(k)*(1.1+(i%3)*.45);
+    b.g=0; b.shuf=0;
+  }
+  return f;
+}
+function _gcaBirdTakeoff(f){
+  f.ground=false;
+  f.landT=15+Math.random()*14;
+  for(var i=0;i<f.b.length;i++){
+    var b=f.b[i];
+    if(b.g===1){ b.g=0; b.vy+=5.4; b.vx+=(Math.random()-.5)*1.6; b.vz+=(Math.random()-.5)*1.6; b.panic=Math.max(b.panic||0,1.1) }
+  }
+  return f;
+}
 function _gcaScatter(x,z,r){
   var S=_gcaBirdsS; if(!S)return 0;
   var n=0;
@@ -5394,12 +5443,15 @@ function _gcaBirdHome(f,px,pz,far){
 function _gcaBirdStep(f,b,dt,t,gy,list){
   var pan=b.panic>0?b.panic:0;
   if(pan>0)b.panic-=dt;
+  if(b.g===1&&pan<=0)return _gcaBirdGround(f,b,dt,t,gy);
+  if(b.g===1){ b.g=0; b.vy+=5.2+2*Math.min(1,pan); }
   b.ang+=b.spd*dt*(pan>0?3.2:1);
-  var tx=f.cx+Math.cos(b.ang)*b.r, tz=f.cz+Math.sin(b.ang)*b.r;
-  var ty=Math.max(gy+7,b.h)+Math.sin(t*.55+b.ph)*1.4+(pan>0?15+6*pan:0);
+  var down=f.ground&&b.gx!==undefined&&pan<=0;
+  var tx=down?b.gx:f.cx+Math.cos(b.ang)*b.r, tz=down?b.gz:f.cz+Math.sin(b.ang)*b.r;
+  var ty=down?gy+.16:(Math.max(gy+7,b.h)+Math.sin(t*.55+b.ph)*1.4+(pan>0?15+6*pan:0));
   var dx=tx-b.x, dy=ty-b.y, dz=tz-b.z;
   var dh=Math.hypot(dx,dz)||1;
-  var want=b.cruise*(pan>0?1.6:1);
+  var want=b.cruise*(pan>0?1.6:(down?.45:1));
   var ax=(dx/dh*want-b.vx), ay=(dy/Math.max(1,Math.hypot(dy,dh))*2.2-b.vy*0), az=(dz/dh*want-b.vz);
   var k=Math.min(1,dt*1.8);
   b.vx+=ax*k; b.vz+=az*k; b.vy+=(dy*.9-b.vy)*Math.min(1,dt*2.2);
@@ -5417,7 +5469,8 @@ function _gcaBirdStep(f,b,dt,t,gy,list){
   var cap=b.cruise*(pan>0?2.4:1.7);
   if(sp>cap){ var q=cap/sp; b.vx*=q; b.vy*=q; b.vz*=q; sp=cap }
   b.x+=b.vx*dt; b.y+=b.vy*dt; b.z+=b.vz*dt;
-  var floor=gy+5;
+  if(down&&Math.hypot(b.x-b.gx,b.z-b.gz)<.55&&b.y<gy+.75){ b.y=gy+.14; b.g=1; b.vx=b.vy=b.vz=0; b.flap=1.34; b.pitch=.1; b.roll=0; return b }
+  var floor=down?gy+.18:gy+5;
   if(b.y<floor){ b.y=floor; if(b.vy<0)b.vy*=-.3 }
   var hs=Math.hypot(b.vx,b.vz)||1;
   var ny=Math.atan2(b.vx,b.vz);
@@ -5447,7 +5500,7 @@ function _gcaBirdsBuild(){
   var px=0,pz=0;
   if(typeof R!=="undefined"&&R&&R.pos){ px=R.pos.x; pz=R.pos.z }
   for(var fi=0;fi<FL;fi++){
-    var f={cx:px+Math.cos(fi*2.4)*38,cz:pz+Math.sin(fi*2.4)*38,cy:13+fi*2.5,ang:fi*1.7,b:[]};
+    var f={cx:px+Math.cos(fi*2.4)*38,cz:pz+Math.sin(fi*2.4)*38,cy:13+fi*2.5,ang:fi*1.7,b:[],landT:7+fi*11,ground:!1,lx:0,lz:0};
     for(var i=0;i<N;i++){
       var b={x:0,y:0,z:0,vx:0,vy:0,vz:0,ang:f.ang+i*(Math.PI*2/N),r:20+((i*7)%5)*2.6,
         h:f.cy+(((i*3)%4)-1.5)*1.5,cruise:8.5+((i*5)%4)*.8,spd:.16+((i*3)%3)*.05,
@@ -5472,6 +5525,14 @@ function _gcaBirds(dt,pl){
     _gcaBirdHome(f,px,pz,260);
     f.cx+=Math.cos(S.t*.05+fi)*dt*2.2;
     f.cz+=Math.sin(S.t*.043+fi*1.7)*dt*2.2;
+    var anyPanic=false;
+    for(var pi=0;pi<f.b.length;pi++)if(f.b[pi].panic>0){ anyPanic=true; break }
+    if(_gcaBirdShouldLand(f,dt,px,pz,anyPanic))_gcaBirdLand(f,px,pz);
+    else if(f.ground){
+      var spook=anyPanic||Math.hypot(f.lx-px,f.lz-pz)<8;
+      if(!spook)for(var si=0;si<f.b.length;si++){ var gb=f.b[si]; if(gb.g===1&&Math.hypot(gb.x-px,gb.z-pz)<6){ spook=true; break } }
+      if(spook)_gcaBirdTakeoff(f);
+    }
     for(var i=0;i<f.b.length;i++){
       var b=f.b[i];
       _gcaBirdStep(f,b,dt,S.t,gy,f.b);

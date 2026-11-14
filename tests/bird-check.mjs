@@ -30,13 +30,17 @@ function extractFn(src, name) {
 
 const api = new Function(
   'var _gcaBirdsS=null;\n' +
-  extractFn(html, '_gcaBirdStep') + '\n' +
-  extractFn(html, '_gcaBirdHome') + '\n' +
-  extractFn(html, '_gcaScatter') + `
+  ['_gcaBirdStep', '_gcaBirdHome', '_gcaScatter', '_gcaBirdGround',
+   '_gcaBirdShouldLand', '_gcaBirdLand', '_gcaBirdTakeoff']
+    .map(n => extractFn(html, n)).join('\n') + `
   return {
     step: _gcaBirdStep,
     home: _gcaBirdHome,
     scatter: _gcaScatter,
+    ground: _gcaBirdGround,
+    shouldLand: _gcaBirdShouldLand,
+    land: _gcaBirdLand,
+    takeoff: _gcaBirdTakeoff,
     setState: function (s) { _gcaBirdsS = s },
   };`,
 )();
@@ -260,6 +264,108 @@ check('frightened birds beat their wings faster', () => {
   t = 0;
   for (let i = 0; i < 60; i++) { t += 1 / 60; api.step(f, scared[0], 1 / 60, t, 0, null); scaredPeak = Math.max(scaredPeak, Math.abs(scared[0].flap)); }
   assert(scaredPeak > calmPeak, 'flap ' + scaredPeak.toFixed(2) + ' vs ' + calmPeak.toFixed(2));
+});
+
+/* ---------------- landing and pecking ---------------- */
+
+const GY = 0.15;
+
+function grounded(over = {}) {
+  const f = { cx: 0, cz: 0, cy: 13, ang: 0, ground: true, landT: 0, lx: 0, lz: 0 };
+  const b = makeBird({ g: 1, gx: 0, gz: 0, shuf: 0, panic: 0, h: 12, y: 6, ...over });
+  f.b = [b];
+  return { f, b };
+}
+
+check('a bird on the ground settles just clear of it', () => {
+  const { f, b } = grounded();
+  for (let i = 0; i < 120; i++) api.ground(f, b, 1 / 60, i / 60, GY);
+  assert(Math.abs(b.y - (GY + 0.14)) < 0.02, 'height is ' + b.y.toFixed(3));
+});
+check('a grounded bird never sinks into the pavement', () => {
+  const { f, b } = grounded({ y: -5 });
+  api.ground(f, b, 1 / 60, 0, GY);
+  assert(b.y >= GY + 0.14, 'sank to ' + b.y.toFixed(2));
+});
+check('wings are folded away on the ground', () => {
+  const { f, b } = grounded();
+  api.ground(f, b, 1 / 60, 0, GY);
+  assert(b.flap > 1.1, 'wings still splayed: ' + b.flap.toFixed(2));
+});
+check('a grounded bird pecks', () => {
+  const { f, b } = grounded();
+  let lo = 9, hi = -9;
+  for (let i = 0; i < 240; i++) {
+    api.ground(f, b, 1 / 60, i / 60, GY);
+    lo = Math.min(lo, b.pitch); hi = Math.max(hi, b.pitch);
+  }
+  assert(lo < 0 && hi > 0.15, 'head barely moves: ' + lo.toFixed(2) + ' to ' + hi.toFixed(2));
+});
+check('a grounded bird shuffles toward its spot', () => {
+  const { f, b } = grounded({ x: 3, z: 0, gx: 0, gz: 0, shuf: 0 });
+  const d0 = Math.hypot(b.x - b.gx, b.z - b.gz);
+  for (let i = 0; i < 180; i++) api.ground(f, b, 1 / 60, i / 60, GY);
+  const d1 = Math.hypot(b.x - b.gx, b.z - b.gz);
+  assert(d1 < d0, 'did not shuffle in: ' + d0.toFixed(2) + ' -> ' + d1.toFixed(2));
+});
+check('settled birds stay put once landed', () => {
+  const { f, b } = grounded();
+  for (let i = 0; i < 120; i++) api.ground(f, b, 1 / 60, i / 60, GY);
+  assert(b.g === 1, 'left the ground');
+  assert(Math.hypot(b.x, b.z) < 0.4, 'wandered off: ' + Math.hypot(b.x, b.z).toFixed(2));
+});
+
+check('a calm flock near the player lands', () => {
+  const f = { cx: 20, cz: 0, ground: false, landT: 0, b: [] };
+  assert(api.shouldLand(f, 1 / 60, 20, 0, false) === true);
+});
+check('a panicked flock stays airborne', () => {
+  const f = { cx: 20, cz: 0, ground: false, landT: 0, b: [] };
+  assert(api.shouldLand(f, 1 / 60, 20, 0, true) === false);
+});
+check('a flock far from the player does not bother landing', () => {
+  const f = { cx: 400, cz: 0, ground: false, landT: 0, b: [] };
+  assert(api.shouldLand(f, 1 / 60, 0, 0, false) === false);
+});
+check('landing waits for its timer', () => {
+  const f = { cx: 20, cz: 0, ground: false, landT: 5, b: [] };
+  assert(api.shouldLand(f, 1 / 60, 20, 0, false) === false, 'landed early');
+});
+check('a flock already down does not land again', () => {
+  const f = { cx: 20, cz: 0, ground: true, landT: 0, b: [] };
+  assert(api.shouldLand(f, 1 / 60, 20, 0, false) === false);
+});
+check('landing gives every bird its own spot near the player', () => {
+  const f = { cx: 20, cz: 0, ground: false, landT: 0, b: [makeBird(), makeBird(), makeBird()] };
+  api.land(f, 100, 100);
+  assert(f.ground === true);
+  const d = Math.hypot(f.lx - 100, f.lz - 100);
+  assert(d > 8 && d < 17, 'landing spot ' + d.toFixed(1) + ' m from the player');
+  assert(f.b.every(b => b.g === 0 && b.gx !== undefined), 'birds not assigned a spot');
+  const spots = f.b.map(b => [b.gx.toFixed(2), b.gz.toFixed(2)].join());
+  assert(new Set(spots).size === 3, 'birds share the same spot');
+});
+check('a landing bird comes down and settles', () => {
+  const f = { cx: 0, cz: 0, ground: true, lx: 0, lz: 0, b: [] };
+  const b = makeBird({ g: 0, gx: 0, gz: 0, x: 0.2, z: 0.2, y: 6, h: 12, cruise: 9 });
+  let t = 0, settled = false;
+  for (let i = 0; i < 900 && !settled; i++) { t += 1 / 60; api.step(f, b, 1 / 60, t, GY, null); settled = b.g === 1; }
+  assert(settled, 'never landed (y=' + b.y.toFixed(1) + ')');
+  assert(b.y < GY + 0.3, 'settled at ' + b.y.toFixed(2));
+});
+check('taking off lifts the whole flock', () => {
+  const f = { cx: 0, cz: 0, ground: true, landT: 0, b: [makeBird({ g: 1, gx: 0, gz: 0 }), makeBird({ g: 1, gx: 1, gz: 0 })] };
+  api.takeoff(f);
+  assert(f.ground === false, 'flock still marked as landed');
+  assert(f.landT > 0, 'no delay before landing again');
+  assert(f.b.every(b => b.g === 0 && b.vy > 4 && b.panic > 0), 'a bird stayed on the ground');
+});
+check('a scare lifts a settled bird mid-step', () => {
+  const f = { cx: 0, cz: 0, ground: true, lx: 0, lz: 0, b: [] };
+  const b = makeBird({ g: 1, gx: 0, gz: 0, panic: 1, y: GY + 0.14 });
+  api.step(f, b, 1 / 60, 0, GY, null);
+  assert(b.g === 0, 'bird stayed grounded through a scare');
+  assert(b.vy > 0, 'no upward kick');
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);
