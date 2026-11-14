@@ -33,7 +33,7 @@ python3 -m http.server 8080
 
 ### Driving
 - Cars, vans, police cruisers, a Humvee and a drivable tank.
-- Arcade handling with drift, handbrake, engine and tyre audio, horns and a siren. Braking hard or breaking traction leaves black tyre marks on the road with smoke curling off the wheels.
+- Arcade handling with drift, handbrake, engine and tyre audio, horns and a siren. Braking hard or breaking traction leaves black tyre marks on the road with smoke curling off the wheels, and the brake lights glow red whenever a car slows or reverses.
 - **Get in and out like GTA V** — Stephen walks to the driver's door, the door swings open, he climbs in and the door shuts behind him, with the whole sequence mirrored when he steps out.
 - Carjacking: pull a driver out of a moving car and take it.
 - Real damage: bodywork dents, breakable glass, burning wrecks and explosions.
@@ -110,15 +110,20 @@ On phones and tablets a left-side thumbstick handles movement, dragging the righ
 
 ## Tests
 
-The pedestrian and crowd systems have a headless regression suite that pulls the
-relevant functions straight out of the game file and runs them against a stub rig:
+Two headless regression suites pull the relevant functions straight out of the
+game file and run them against stub rigs. No dependencies, no browser:
 
 ```bash
 node tests/ped-check.mjs
+node tests/vehicle-check.mjs
 ```
 
-It covers the head pivot clamp, gait and idle variation, spotting, fleeing and
-ducking, every pedestrian activity, court shooting, and the traffic dodge.
+The pedestrian suite covers the head pivot clamp, gait and idle variation,
+spotting, fleeing and ducking, every pedestrian activity, court shooting, and
+the traffic dodge. The vehicle suite covers tyre marks (when they appear, their
+spacing, the 90 m distance gate and cleanup), brake lights (lazy creation,
+sharing, placement, when they light up), and crash damage (armour, wrecking and
+the wreck hook).
 
 ## Credits
 
