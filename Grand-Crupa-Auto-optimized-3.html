@@ -6035,6 +6035,560 @@ ${wn.info.render.calls} calls  ${(wn.info.render.triangles/1e3).toFixed(0)}k tri
     poles: poles, lenses: lenses, refresh: refresh
   };
 })(On, ae, re);
+;/* ---- hilltop village: a new hill west of the city, with houses, mud lanes,
+       a road up from town, and its own patch of the radar ---- */
+(function (scene, world) {
+  if (!scene || !world || !window.__GCA_T) return;
+  var T = window.__GCA_T;
+
+  /* ------------------------------------------------------------------ *
+   * layout
+   * ------------------------------------------------------------------ */
+  var SX = -640, SZ = 0;                 // summit
+  var RX = 188, RZ = 170;                // hill footprint (ellipse)
+  var RISE = 30;                         // metres above the city plain
+  var FLAT = .55;                        // fraction of the radius that is flat
+  var X0 = -872, X1 = -356, Z0 = -254, Z1 = 254;   // the patch of land itself
+  var STEP = 3;
+
+  var base = world.groundHeight.bind(world);
+
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function smooth(t) { return t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t); }
+
+  /* the hill: the plain plus a rounded shoulder, faded to nothing at the patch
+     edges so it joins the city ground without a seam */
+  function gcaVHeight(x, z) {
+    var dx = (x - SX) / RX, dz = (z - SZ) / RZ;
+    var d = Math.sqrt(dx * dx + dz * dz);
+    var k = smooth(clamp((1 - d) / (1 - FLAT), 0, 1));
+    var rise = RISE * k + 4 * Math.sin(x / 41) * Math.cos(z / 37) * k * (1 - k);
+    var edge = Math.min(x - X0, X1 - x, z - Z0, Z1 - z);
+    return base(x, z) + rise * smooth(clamp(edge / 30, 0, 1));
+  }
+
+  function groundAt(x, z) {
+    if (x >= X0 && x <= X1 && z >= Z0 && z <= Z1) return gcaVHeight(x, z);
+    return base(x, z);
+  }
+
+  /* everything that walks, drives or falls reads this, so the hill is solid */
+  world.groundHeight = groundAt;
+  world.bounds = Math.max(world.bounds, 880);      // let people walk out there
+
+  /* ------------------------------------------------------------------ *
+   * textures
+   * ------------------------------------------------------------------ */
+  function tex(size, draw) {
+    var c = document.createElement('canvas');
+    c.width = c.height = size;
+    draw(c.getContext('2d'), size);
+    var t = new T.CanvasTexture(c);
+    t.wrapS = t.wrapT = 1000;                        // RepeatWrapping
+    t.colorSpace = 'srgb';
+    t.anisotropy = 4;
+    return t;
+  }
+  function noise(ctx, size, n, alpha, dark) {
+    for (var i = 0; i < n; i++) {
+      var g = Math.random();
+      ctx.fillStyle = (dark ? 'rgba(0,0,0,' : 'rgba(255,255,255,') + (alpha * g).toFixed(3) + ')';
+      ctx.fillRect(Math.random() * size, Math.random() * size, 1 + Math.random() * 2, 1 + Math.random() * 2);
+    }
+  }
+
+  var mudTex = tex(128, function (c, s) {
+    c.fillStyle = '#6b5334'; c.fillRect(0, 0, s, s);
+    for (var i = 0; i < 260; i++) {
+      c.fillStyle = ['#7b6141', '#5d482c', '#725a39', '#836743'][i % 4];
+      c.beginPath();
+      c.ellipse(Math.random() * s, Math.random() * s, 3 + Math.random() * 8, 2 + Math.random() * 5, Math.random() * 3, 0, 6.3);
+      c.fill();
+    }
+    // two tyre ruts down the middle of the lane
+    c.fillStyle = 'rgba(48,36,22,.55)';
+    c.fillRect(s * .24, 0, s * .11, s);
+    c.fillRect(s * .65, 0, s * .11, s);
+    noise(c, s, 700, .22, true);
+  });
+  mudTex.repeat.set(1, 1);
+
+  var gravelTex = tex(128, function (c, s) {
+    c.fillStyle = '#8b8377'; c.fillRect(0, 0, s, s);
+    for (var i = 0; i < 900; i++) {
+      c.fillStyle = ['#9c9488', '#776f64', '#a8a094', '#6a6259'][i % 4];
+      c.fillRect(Math.random() * s, Math.random() * s, 2, 2);
+    }
+  });
+
+  var asphaltTex = tex(128, function (c, s) {
+    c.fillStyle = '#3a3c40'; c.fillRect(0, 0, s, s);
+    noise(c, s, 1400, .1, false);
+    noise(c, s, 1400, .18, true);
+  });
+
+  var stoneTex = tex(128, function (c, s) {
+    c.fillStyle = '#8e8a80'; c.fillRect(0, 0, s, s);
+    var h = s / 6;
+    for (var r = 0; r < 6; r++) {
+      var off = (r % 2) * s / 8;
+      for (var x = -8; x < s; x += s / 4) {
+        c.fillStyle = ['#9a968c', '#827e75', '#918d84'][(r + x) % 3];
+        c.fillRect(x + off + 1, r * h + 1, s / 4 - 2, h - 2);
+      }
+    }
+    noise(c, s, 400, .18, true);
+  });
+
+  var tileTex = tex(128, function (c, s) {
+    c.fillStyle = '#8d4a35'; c.fillRect(0, 0, s, s);
+    for (var r = 0; r < 8; r++) {
+      for (var x = 0; x < 8; x++) {
+        c.fillStyle = ['#9c5238', '#7d402c', '#a25a3f'][(r + x) % 3];
+        c.beginPath();
+        c.arc(x * s / 8 + s / 16, r * s / 8 + s / 8, s / 18, Math.PI, 0);
+        c.fill();
+      }
+    }
+    noise(c, s, 300, .2, true);
+  });
+
+  var woodTex = tex(64, function (c, s) {
+    c.fillStyle = '#4d3521'; c.fillRect(0, 0, s, s);
+    for (var i = 0; i < 40; i++) {
+      c.fillStyle = ['#5a3f28', '#412c1b', '#63482f'][i % 3];
+      c.fillRect(0, Math.random() * s, s, 1 + Math.random() * 2);
+    }
+  });
+
+  var grassTex = tex(128, function (c, s) {
+    c.fillStyle = '#4a6b32'; c.fillRect(0, 0, s, s);
+    for (var i = 0; i < 1200; i++) {
+      c.fillStyle = ['#557a39', '#405e2b', '#5f8440', '#3b5728'][i % 4];
+      c.fillRect(Math.random() * s, Math.random() * s, 2, 3);
+    }
+  });
+
+  var plasterTex = tex(64, function (c, s) {
+    c.fillStyle = '#ffffff'; c.fillRect(0, 0, s, s);
+    noise(c, s, 900, .12, true);
+  });
+
+  function mat(opts) { return new T.MeshStandardMaterial(opts); }
+
+  var M = {
+    grass:   mat({ map: grassTex, roughness: .97, metalness: 0 }),
+    mud:     mat({ map: mudTex, roughness: .96, metalness: 0, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }),
+    gravel:  mat({ map: gravelTex, roughness: .95, metalness: 0, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }),
+    asphalt: mat({ map: asphaltTex, roughness: .9, metalness: .02, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }),
+    stone:   mat({ map: stoneTex, roughness: .95, metalness: 0 }),
+    roof:    mat({ map: tileTex, roughness: .88, metalness: 0 }),
+    wood:    mat({ map: woodTex, roughness: .92, metalness: 0 }),
+    plaster: mat({ map: plasterTex, roughness: .93, metalness: 0 }),
+    glass:   mat({ color: 0x2b3a44, roughness: .22, metalness: .5, emissive: 0x0d1418, emissiveIntensity: 1 }),
+    dark:    mat({ color: 0x2a2622, roughness: .9, metalness: 0 }),
+    thatch:  mat({ color: 0x8a7440, roughness: .98, metalness: 0 })
+  };
+
+  /* ------------------------------------------------------------------ *
+   * the ground patch itself
+   * ------------------------------------------------------------------ */
+  var ground = (function () {
+    var nx = Math.round((X1 - X0) / STEP), nz = Math.round((Z1 - Z0) / STEP);
+    var pos = [], uv = [], idx = [];
+    for (var j = 0; j <= nz; j++) {
+      var z = Z0 + j * STEP;
+      for (var i = 0; i <= nx; i++) {
+        var x = X0 + i * STEP;
+        pos.push(x, gcaVHeight(x, z) - .02, z);
+        uv.push(x / 8, z / 8);
+      }
+    }
+    for (j = 0; j < nz; j++) {
+      for (i = 0; i < nx; i++) {
+        var a = j * (nx + 1) + i, b = a + 1, c = a + nx + 1, d = c + 1;
+        idx.push(a, c, b, b, c, d);
+      }
+    }
+    var g = new T.BufferGeometry();
+    g.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
+    g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));
+    g.setIndex(idx);
+    g.computeVertexNormals();
+    var m = new T.Mesh(g, M.grass);
+    m.receiveShadow = true;
+    scene.add(m);
+    return m;
+  })();
+
+  /* ------------------------------------------------------------------ *
+   * roads: ribbons that follow the ground
+   * ------------------------------------------------------------------ */
+  function spline(pts, spacing) {
+    var out = [], i, k;
+    for (i = 0; i < pts.length - 1; i++) {
+      var p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
+      var len = Math.hypot(p2[0] - p1[0], p2[1] - p1[1]);
+      var n = Math.max(2, Math.ceil(len / spacing));
+      for (k = 0; k < n; k++) {
+        var t = k / n, t2 = t * t, t3 = t2 * t;
+        var f = function (a, b, c, d) {
+          return 0.5 * ((2 * b) + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3);
+        };
+        out.push([f(p0[0], p1[0], p2[0], p3[0]), f(p0[1], p1[1], p2[1], p3[1])]);
+      }
+    }
+    out.push(pts[pts.length - 1].slice());
+    return out;
+  }
+
+  function ribbon(pts, width, material, lift) {
+    var line = spline(pts, 2.5);
+    var pos = [], uv = [], idx = [], run = 0;
+    for (var i = 0; i < line.length; i++) {
+      var p = line[i];
+      var a = line[Math.max(0, i - 1)], b = line[Math.min(line.length - 1, i + 1)];
+      var tx = b[0] - a[0], tz = b[1] - a[1];
+      var l = Math.hypot(tx, tz) || 1;
+      tx /= l; tz /= l;
+      var nxp = -tz, nzp = tx;
+      var hw = width / 2;
+      if (i) run += Math.hypot(p[0] - line[i - 1][0], p[1] - line[i - 1][1]);
+      var lx = p[0] + nxp * hw, lz = p[1] + nzp * hw;
+      var rx = p[0] - nxp * hw, rz = p[1] - nzp * hw;
+      pos.push(lx, groundAt(lx, lz) + lift, lz);
+      pos.push(rx, groundAt(rx, rz) + lift, rz);
+      uv.push(0, run / 9, 1, run / 9);
+      if (i) {
+        var k = (i - 1) * 2;
+        idx.push(k, k + 2, k + 1, k + 1, k + 2, k + 3);
+      }
+    }
+    var g = new T.BufferGeometry();
+    g.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
+    g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));
+    g.setIndex(idx);
+    g.computeVertexNormals();
+    var m = new T.Mesh(g, material);
+    m.receiveShadow = true;
+    scene.add(m);
+    return m;
+  }
+
+  /* the lanes of the village itself */
+  var HIGH = [[-556, 0], [-590, 1], [-626, -1], [-664, 1], [-700, -1], [-738, 1], [-790, 0]];
+  var LANE_N = [[-650, 2], [-656, 24], [-674, 44], [-702, 54], [-742, 56]];
+  var LANE_S = [[-634, -3], [-640, -24], [-662, -38], [-698, -44]];
+  var RAMP = [[-352, 2], [-386, 12], [-420, 2], [-452, 14], [-492, 4], [-524, 12], [-556, 0]];
+
+  ribbon(HIGH, 8, M.mud, .07);
+  ribbon(LANE_N, 5.5, M.mud, .07);
+  ribbon(LANE_S, 5.5, M.mud, .07);
+  /* the climb: tarmac out of town, then gravel, then mud */
+  ribbon(RAMP.slice(0, 3), 9.5, M.asphalt, .07);
+  ribbon(RAMP.slice(2, 5), 9, M.gravel, .075);
+  ribbon(RAMP.slice(4), 8.5, M.mud, .08);
+
+  /* ------------------------------------------------------------------ *
+   * houses: instanced parts, so the whole village is a handful of draw calls
+   * ------------------------------------------------------------------ */
+  var parts = {};
+  function part(name, geo, material, colored) {
+    if (!parts[name]) parts[name] = { geo: geo, mat: material, list: [], tint: [], colored: !!colored };
+    return parts[name];
+  }
+  var BOX = new T.BoxGeometry(1, 1, 1);
+
+  /* a gable roof as a triangular prism, ridge along z, base at y = 0 */
+  var PRISM = (function () {
+    var g = new T.BufferGeometry();
+    var v = [-.5, 0, -.5, .5, 0, -.5, 0, 1, -.5, -.5, 0, .5, .5, 0, .5, 0, 1, .5];
+    var u = [0, 0, 1, 0, .5, 1, 0, 1, 1, 1, .5, 0];
+    g.setAttribute('position', new T.Float32BufferAttribute(v, 3));
+    g.setAttribute('uv', new T.Float32BufferAttribute(u, 2));
+    g.setIndex([0, 2, 1, 3, 4, 5, 0, 3, 5, 0, 5, 2, 1, 2, 5, 1, 5, 4]);
+    g.computeVertexNormals();
+    return g;
+  })();
+
+  var q = new T.Quaternion(), upAx = new T.Vector3(0, 1, 0), pos = new T.Vector3(), scl = new T.Vector3();
+  function put(name, geo, material, x, y, z, sx, sy, sz, ry, color) {
+    var p = part(name, geo, material, color != null);
+    q.setFromAxisAngle(upAx, ry);
+    pos.set(x, y, z); scl.set(sx, sy, sz);
+    var m = new T.Matrix4().compose(pos, q, scl);
+    p.list.push(m);
+    p.tint.push(color != null ? new T.Color(color) : null);
+  }
+  function putLocal(name, geo, material, house, lx, ly, lz, sx, sy, sz, ry, color) {
+    var c = Math.cos(house.yaw), s = Math.sin(house.yaw);
+    var x = house.x + lx * c + lz * s, z = house.z - lx * s + lz * c;
+    put(name, geo, material, x, house.gy + ly, z, sx, sy, sz, house.yaw + (ry || 0), color);
+  }
+
+  var WALLS = [0xe6dcc4, 0xd9c9a6, 0xcbb894, 0xe9e2d2, 0xc9c3ad, 0xd8c0a0, 0xbfae8f];
+  var ROOFS = [0x9c5238, 0x8a4a32, 0x6d5a4a, 0x8a7440, 0x7d402c];
+  var houses = [];
+
+  function house(cfg) {
+    var w = cfg.w, d = cfg.d, hw = cfg.h;          // body size not counting walls base
+    var yaw = cfg.yaw, gy = groundAt(cfg.x, cfg.z);
+    var h = { x: cfg.x, z: cfg.z, yaw: yaw, gy: gy, w: w, d: d, h: hw };
+    var wallCol = cfg.wall, roofCol = cfg.roof;
+    var roofH = cfg.roofH != null ? cfg.roofH : w * .42;
+
+    /* stone footing, then the body */
+    putLocal('stone', BOX, M.stone, h, 0, .28, 0, w + .3, .56, d + .3, 0, null);
+    putLocal('wall', BOX, M.plaster, h, 0, .56 + hw / 2, 0, w, hw, d, 0, wallCol);
+    /* roof, with an overhang, then a ridge cap */
+    putLocal('roof', PRISM, M.roof, h, 0, .56 + hw, 0, w * 1.16, roofH, d * 1.1, 0, roofCol);
+    putLocal('ridge', BOX, M.roof, h, 0, .56 + hw + roofH - .04, 0, .34, .18, d * 1.1, 0, roofCol);
+    /* chimney */
+    if (cfg.chimney) {
+      var cxp = (cfg.chimney === 'l' ? -1 : 1) * (w * .28);
+      putLocal('chimney', BOX, M.stone, h, cxp, .56 + hw + roofH * .55, -d * .18, .62, roofH * .95 + .7, .62, 0, null);
+      putLocal('chimney', BOX, M.dark, h, cxp, .56 + hw + roofH * 1.05 + .74, -d * .18, .78, .16, .78, 0, null);
+    }
+    /* door and step on the front (+z) face */
+    putLocal('door', BOX, M.wood, h, 0, .56 + 1.05, d / 2 + .04, 1.05, 2.1, .12, 0, cfg.door || 0x5a3f28);
+    putLocal('frame', BOX, M.wood, h, 0, .56 + 2.14, d / 2 + .05, 1.32, .16, .14, 0, 0x412c1b);
+    putLocal('step', BOX, M.stone, h, 0, .2, d / 2 + .42, 1.6, .4, .8, 0, null);
+    /* windows */
+    var wins = cfg.windows;
+    var wy = .56 + hw * .58;
+    for (var i = 0; i < wins; i++) {
+      var t = (i + .5) / wins;
+      var lx = (t - .5) * w * .78;
+      putLocal('glass', BOX, M.glass, h, lx, wy, d / 2 + .03, .82, .95, .1, 0, null);
+      putLocal('frame', BOX, M.wood, h, lx, wy, d / 2 + .02, .98, 1.11, .08, 0, 0x3d2a1a);
+      if (cfg.shutters) {
+        putLocal('shutter', BOX, M.wood, h, lx - .78, wy, d / 2 + .04, .3, .95, .09, 0, 0x6d4a2c);
+        putLocal('shutter', BOX, M.wood, h, lx + .78, wy, d / 2 + .04, .3, .95, .09, 0, 0x6d4a2c);
+      }
+      if (cfg.upper) {
+        var uy = .56 + hw * 1.34;
+        if (uy < .56 + hw - .35) {
+          putLocal('glass', BOX, M.glass, h, lx, uy, d / 2 + .03, .7, .8, .1, 0, null);
+          putLocal('frame', BOX, M.wood, h, lx, uy, d / 2 + .02, .86, .96, .08, 0, 0x3d2a1a);
+        }
+      }
+    }
+    /* underpinning beams, which instantly read as "old house" */
+    if (cfg.timber) {
+      putLocal('beam', BOX, M.wood, h, 0, .56 + hw - .09, d / 2 + .07, w + .06, .18, .1, 0, 0x3d2a1a);
+      putLocal('beam', BOX, M.wood, h, -w * .42, .56 + hw / 2, d / 2 + .07, .18, hw, .1, 0, 0x3d2a1a);
+      putLocal('beam', BOX, M.wood, h, w * .42, .56 + hw / 2, d / 2 + .07, .18, hw, .1, 0, 0x3d2a1a);
+    }
+    /* porch */
+    if (cfg.porch) {
+      var pz = d / 2 + 1.5;
+      putLocal('deck', BOX, M.wood, h, 0, .5, d / 2 + .8, w * .8, .16, 1.9, 0, 0x4d3521);
+      putLocal('beam', BOX, M.wood, h, -w * .34, 1.6, pz, .17, 2.2, .17, 0, 0x412c1b);
+      putLocal('beam', BOX, M.wood, h, w * .34, 1.6, pz, .17, 2.2, .17, 0, 0x412c1b);
+      putLocal('roof', PRISM, M.roof, h, 0, 2.7, d / 2 + .8, w * .9, .55, 2.1, 0, roofCol);
+    }
+    /* lean-to shed on the back */
+    if (cfg.shed) {
+      var sw = cfg.shed === 'wide' ? w * .62 : w * .42;
+      putLocal('wall', BOX, M.plaster, h, sw * .1, .56 + .95, -d / 2 - sw / 2, sw, 1.9, sw, 0, wallCol);
+      putLocal('roof', PRISM, M.roof, h, sw * .1, .56 + 1.9, -d / 2 - sw / 2, sw * 1.12, .5, sw * .9, 0, roofCol);
+    }
+    /* barn doors */
+    if (cfg.barn) {
+      putLocal('door', BOX, M.wood, h, 0, .56 + 1.4, d / 2 + .04, 3.4, 2.8, .14, 0, 0x4d3521);
+      putLocal('beam', BOX, M.wood, h, 0, .56 + 2.85, d / 2 + .06, 3.7, .2, .16, 0, 0x3d2a1a);
+      putLocal('glass', BOX, M.glass, h, 0, .56 + hw * .72, d / 2 + .04, 1.1, .8, .1, 0, null);
+    }
+    /* bell cot for the little chapel */
+    if (cfg.bell) {
+      putLocal('bell', BOX, M.stone, h, 0, .56 + hw + roofH + .35, 0, .9, .7, .9, 0, null);
+      putLocal('roof', PRISM, M.roof, h, 0, .56 + hw + roofH + .7, 0, 1.3, .6, 1.3, 0, roofCol);
+    }
+    houses.push({ x: cfg.x, z: cfg.z, yaw: yaw, w: w, d: d, gy: gy });
+  }
+
+  /* --- the village along the high street, each one its own shape --- */
+  var front = 12.5;
+  house({ x: -566, z: front, yaw: Math.PI, w: 7.4, d: 6.2, h: 3.1, wall: WALLS[0], roof: ROOFS[0], windows: 2, chimney: 'l', timber: true, upper: true });
+  house({ x: -566, z: -front, yaw: 0, w: 6.2, d: 5.4, h: 2.9, wall: WALLS[1], roof: ROOFS[1], windows: 2, chimney: 'r', shutters: true });
+  house({ x: -592, z: front, yaw: Math.PI, w: 11.2, d: 5.6, h: 3.0, wall: WALLS[2], roof: ROOFS[2], windows: 3, chimney: 'r', shed: true, timber: true });
+  house({ x: -592, z: -front, yaw: 0, w: 6.8, d: 6.8, h: 5.4, wall: WALLS[3], roof: ROOFS[0], windows: 2, chimney: 'l', upper: true });
+  house({ x: -618, z: front, yaw: Math.PI, w: 6.6, d: 5.8, h: 3.0, wall: WALLS[4], roof: ROOFS[3], windows: 2, chimney: 'l', porch: true });
+  house({ x: -618, z: -front, yaw: 0, w: 9.6, d: 6.0, h: 3.2, wall: WALLS[5], roof: ROOFS[1], windows: 3, chimney: 'r', timber: true, shutters: true });
+  house({ x: -644, z: front, yaw: Math.PI, w: 6.0, d: 9.2, h: 3.4, wall: WALLS[6], roof: ROOFS[2], windows: 2, chimney: 'l', bell: true, roofH: 2.6 });
+  house({ x: -644, z: -front, yaw: 0, w: 12.4, d: 7.2, h: 4.4, wall: WALLS[1], roof: ROOFS[0], windows: 0, barn: true, roofH: 3.6 });
+  house({ x: -670, z: front, yaw: Math.PI, w: 7.0, d: 6.0, h: 3.0, wall: WALLS[2], roof: ROOFS[3], windows: 2, chimney: 'r', porch: true, shutters: true });
+  house({ x: -670, z: -front, yaw: 0, w: 6.4, d: 5.6, h: 2.9, wall: WALLS[3], roof: ROOFS[1], windows: 2, chimney: 'l', shed: 'wide', timber: true });
+  house({ x: -696, z: front, yaw: Math.PI, w: 8.6, d: 5.8, h: 3.1, wall: WALLS[4], roof: ROOFS[2], windows: 3, chimney: 'l', upper: true });
+  house({ x: -696, z: -front, yaw: 0, w: 6.2, d: 6.4, h: 4.9, wall: WALLS[0], roof: ROOFS[0], windows: 2, chimney: 'r', upper: true, timber: true });
+  house({ x: -722, z: front, yaw: Math.PI, w: 7.8, d: 5.6, h: 3.0, wall: WALLS[5], roof: ROOFS[3], windows: 2, chimney: 'l', shutters: true });
+  house({ x: -722, z: -front, yaw: 0, w: 6.8, d: 5.8, h: 3.0, wall: WALLS[6], roof: ROOFS[1], windows: 2, chimney: 'r', porch: true });
+  house({ x: -722, z: -front - 16, yaw: -Math.PI / 2, w: 6.4, d: 5.2, h: 2.8, wall: WALLS[1], roof: ROOFS[2], windows: 2, chimney: 'l', shed: true });
+  /* up the north lane */
+  house({ x: -676, z: 44, yaw: -Math.PI / 2, w: 6.6, d: 5.6, h: 3.0, wall: WALLS[2], roof: ROOFS[0], windows: 2, chimney: 'r', timber: true });
+  house({ x: -704, z: 70, yaw: -Math.PI / 2, w: 7.2, d: 5.8, h: 3.1, wall: WALLS[0], roof: ROOFS[3], windows: 2, chimney: 'l', shutters: true });
+  /* and the south lane */
+  house({ x: -664, z: -52, yaw: Math.PI / 2, w: 6.2, d: 5.4, h: 2.9, wall: WALLS[5], roof: ROOFS[1], windows: 2, chimney: 'r' });
+  house({ x: -702, z: -60, yaw: Math.PI / 2, w: 8.4, d: 5.6, h: 3.0, wall: WALLS[3], roof: ROOFS[2], windows: 2, chimney: 'l', porch: true });
+
+  /* --- fences around the yards: two instances, two draw calls --- */
+  var yards = houses.filter(function (h, i) { return i % 3 !== 2; });
+  function yardPoint(h, lx, lz) {
+    var cx = Math.cos(h.yaw), sx = Math.sin(h.yaw);
+    return [h.x + lx * cx + lz * sx, h.z - lx * sx + lz * cx];
+  }
+  yards.forEach(function (h) {
+    var w = h.w * .5 + 4.2, d = h.d * .5 + 4.6;
+    /* three sides of a yard, the fourth left open on the lane */
+    [['x', -d], ['x', d], ['z', -w], ['z', w]].forEach(function (side, si) {
+      if (si === 1) return;                          // open on the street
+      var along = side[0] === 'x' ? w : d;
+      var off = side[1];
+      var len = along * 2, step = 1.9;
+      var n = Math.max(2, Math.round(len / step));
+      var mid = sidePoint(h, side, off, 0);
+      /* rails, two per side */
+      for (var r = 0; r < 2; r++) {
+        var ry = side[0] === 'x' ? h.yaw : h.yaw + Math.PI / 2;
+        var gy = groundAt(mid[0], mid[1]) + .45 + r * .48;
+        put('fence', BOX, M.wood, mid[0], gy, mid[1], len, .09, .06, ry, null);
+      }
+      /* posts */
+      for (var k = 0; k <= n; k++) {
+        var t = (k / n - .5) * len;
+        var p = sidePoint(h, side, off, t);
+        put('post', BOX, M.wood, p[0], groundAt(p[0], p[1]) + .58, p[1], .13, 1.16, .13, h.yaw, null);
+      }
+    });
+  });
+  function sidePoint(h, side, off, t) {
+    var lx, lz;
+    if (side[0] === 'x') { lx = t; lz = off; } else { lx = off; lz = t; }
+    return yardPoint(h, lx, lz);
+  }
+
+  /* --- a well, three haystacks and a signpost --- */
+  var WX = -626, WZ = -6;
+  put('well', new T.CylinderGeometry(1.5, 1.6, 1.1, 12), M.stone, WX, groundAt(WX, WZ) + .55, WZ, 1, 1, 1, 0, null);
+  put('well', new T.CylinderGeometry(1.15, 1.15, .12, 12), M.dark, WX, groundAt(WX, WZ) + 1.12, WZ, 1, 1, 1, 0, null);
+  [[-1.35, -1.35], [1.35, -1.35], [-1.35, 1.35], [1.35, 1.35]].forEach(function (o) {
+    put('post', BOX, M.wood, WX + o[0], groundAt(WX + o[0], WZ + o[1]) + 1.1, WZ + o[1], .16, 2.2, .16, 0, null);
+  });
+  put('roof', PRISM, M.roof, WX, groundAt(WX, WZ) + 2.2, WZ, 3.6, 1.0, 3.4, 0, 0x7a4a34);
+
+  [[-560, -34], [-596, 34], [-716, -30]].forEach(function (p) {
+    put('hay', new T.CylinderGeometry(1.5, 1.9, 2.4, 10), M.thatch, p[0], groundAt(p[0], p[1]) + 1.2, p[1], 1, 1, 1, 0, null);
+    put('hay', new T.ConeGeometry(1.55, 1.0, 10), M.thatch, p[0], groundAt(p[0], p[1]) + 2.4, p[1], 1, 1, 1, 0, null);
+  });
+
+  /* --- build the instanced meshes --- */
+  var drawCalls = 0;
+  var upQ = new T.Quaternion();
+  Object.keys(parts).forEach(function (name) {
+    var p = parts[name];
+    var im = new T.InstancedMesh(p.geo, p.mat, p.list.length);
+    for (var i = 0; i < p.list.length; i++) {
+      im.setMatrixAt(i, p.list[i]);
+      if (p.colored && p.tint[i]) im.setColorAt(i, p.tint[i]);
+    }
+    im.instanceMatrix.needsUpdate = true;
+    if (im.instanceColor) im.instanceColor.needsUpdate = true;
+    im.castShadow = true; im.receiveShadow = true;
+    im.frustumCulled = false;
+    scene.add(im);
+    drawCalls++;
+  });
+
+  /* ------------------------------------------------------------------ *
+   * trees on the flanks
+   * ------------------------------------------------------------------ */
+  if (typeof world.plantTrees === 'function') {
+    var spots = [];
+    for (var a = 0; a < 46; a++) {
+      var ang = (a / 46) * Math.PI * 2 + .21;
+      var rr = .52 + ((a * 37) % 11) / 26;
+      var tx = SX + Math.cos(ang) * RX * rr, tz = SZ + Math.sin(ang) * RZ * rr;
+      /* keep clear of the lanes */
+      var near = false;
+      [HIGH, LANE_N, LANE_S, RAMP].forEach(function (road) {
+        for (var i = 0; i < road.length - 1 && !near; i++) {
+          var p1 = road[i], p2 = road[i + 1];
+          var vx = p2[0] - p1[0], vz = p2[1] - p1[1];
+          var t = clamp(((tx - p1[0]) * vx + (tz - p1[1]) * vz) / (vx * vx + vz * vz || 1), 0, 1);
+          if (Math.hypot(tx - (p1[0] + vx * t), tz - (p1[1] + vz * t)) < 9) near = true;
+        }
+      });
+      if (!near) spots.push([tx, tz, 6 + (a % 5) * 1.4]);
+    }
+    try { world.plantTrees(spots, { seed: 7331, groundHeight: groundAt, lodDistance: 220 }); } catch (err) {}
+  }
+
+  /* ------------------------------------------------------------------ *
+   * the radar: the hill, its lanes and its houses, plus a V pin
+   * ------------------------------------------------------------------ */
+  var radar = document.getElementById('radar');
+  var lastMark = 0;
+  function drawMap(ctx, m) {
+    /* one compact badge at the summit: the dial already carries the city, and a
+       big green disc at dial scale would swamp it. Clamped to the rim when the
+       hill is out of range. */
+    var ex = m.a * SX + m.c * SZ + m.e, ey = m.b * SX + m.d * SZ + m.f;
+    var cxp = 120, cyp = 120, dx = ex - cxp, dy = ey - cyp, len = Math.hypot(dx, dy), lim = cxp - 18;
+    if (len > lim) { ex = cxp + dx / len * lim; ey = cyp + dy / len * lim; }
+    ctx.save();
+    ctx.beginPath(); ctx.arc(ex, ey, 14, 0, 6.3);
+    ctx.fillStyle = 'rgba(78,108,56,.95)'; ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(16,24,12,.82)'; ctx.stroke();
+    /* two little houses under red roofs */
+    ctx.fillStyle = '#e9e2d2';
+    ctx.fillRect(ex - 6, ey - 6, 4.6, 4.6);
+    ctx.fillRect(ex + 1.2, ey - 6, 4.6, 4.6);
+    ctx.fillStyle = '#93412c';
+    ctx.fillRect(ex - 6, ey - 7.6, 4.6, 1.7);
+    ctx.fillRect(ex + 1.2, ey - 7.6, 4.6, 1.7);
+    ctx.fillStyle = '#e4eec9'; ctx.font = '800 8px sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('V', ex, ey + 5.5);
+    ctx.restore();
+  }
+  if (radar && radar.getContext) {
+    /* the dial itself is painted by the game after it resets the transform,
+       so the village marks go on a transparent canvas stacked over it */
+    var over = document.createElement('canvas');
+    over.width = radar.width; over.height = radar.height;
+    over.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
+    radar.parentNode.appendChild(over);
+    var octx = over.getContext('2d');
+    var rctx = radar.getContext('2d');
+    var cproto = Object.getPrototypeOf(rctx);
+    var origSet = cproto.setTransform;
+    cproto.setTransform = function (a, b, c, d, e, f) {
+      /* the dial is drawn under a non-identity transform: that call carries the
+         world -> dial matrix (scale, rotation with the camera, player offset) */
+      var isRadar = this.canvas && this.canvas.id === 'radar';
+      var out = origSet.apply(this, arguments);
+      if (isRadar && !(a === 1 && b === 0 && c === 0 && d === 1 && e === 0 && f === 0)) {
+        var now = performance.now();
+        if (now - lastMark > 6) {                    // once a frame, not twice
+          lastMark = now;
+          octx.setTransform(1, 0, 0, 1, 0, 0);
+          octx.clearRect(0, 0, over.width, over.height);
+          try { drawMap(octx, { a: a, b: b, c: c, d: d, e: e, f: f }); } catch (err) {}
+        }
+      }
+      return out;
+    };
+    window.__gcaVillageRadar = { over: over, lastMatrix: null };
+  }
+
+  window.__gcaVillage = {
+    sceneRef: scene, mats: M, groundMesh: ground,
+    centre: { x: SX, z: SZ }, radius: RX, radiusZ: RZ, height: gcaVHeight,
+    ground: groundAt, houses: houses, roads: { high: HIGH, north: LANE_N, south: LANE_S, ramp: RAMP },
+    patch: { X0: X0, X1: X1, Z0: Z0, Z1: Z1 }, peak: gcaVHeight(SX, SZ), drawCalls: drawCalls
+  };
+})(On, ae);
+
 (async function(){if(wu(.8),re.add("sports",9120548,25.1,12,0,"parked"),re.add("taxi",14857006,25.1,-16,0,"parked"),er.spawnCars(re),re.spawnParked(64),re.spawnTraffic(10),re.spawnPatrol(),Iu(!1),cv){_t("gate-btn").textContent="LOADING MODEL";try{let e=await Fe.loadModel(cv,n=>n.total&&wu(.8+.2*n.loaded/n.total));console.info("Stephen model loaded",e)}catch(e){console.warn("Stephen model failed to load, using placeholder",e)}}wu(1);let t=_t("gate-btn");t.disabled=!1,t.textContent="TAP TO START",t.classList.add("ready"),t.addEventListener("click",async()=>{t.disabled=!0;try{await Et.init()}catch(e){console.warn(e)}try{Nv()}catch(e){console.warn(e)}try{screen.orientation?.lock?.("landscape").catch(()=>{})}catch{}_t("gate").classList.add("fade"),setTimeout(()=>_t("gate").classList.add("hidden"),650),Cu.getItem(gx)?t0():Fv()}),PA(),_x(),mx(),_t("fps").classList.toggle("hidden",!te.fps),_t("intro-skip").addEventListener("click",()=>{ge==="video"&&_i>.4&&Au()}),_t("intro-video-wrap").addEventListener("pointerdown",e=>{ge==="video"&&_i>.4&&e.target.tagName!=="BUTTON"&&Au()}),addEventListener("keydown",e=>{ge==="video"&&_i>.4&&e.code!=="Escape"&&Au()}),requestAnimationFrame(e=>{hx=e,Kp=e,Bv(e)}),Wp&&(_t("gate").classList.add("hidden"),Et.init().catch(()=>{}),Wp==="menu"?Ru():Wp==="play"?(Ru(),xx()):Wp==="intro"&&t0())})();window.render_game_to_text=()=>JSON.stringify({note:"x right, z toward camera-at-spawn (south), y up. facing=0 means looking +z",state:ge,t:+_i.toFixed(2),player:{x:+R.pos.x.toFixed(2),y:+R.pos.y.toFixed(2),z:+R.pos.z.toFixed(2),vx:+R.vx.toFixed(2),vz:+R.vz.toFixed(2),vy:+R.vy.toFixed(2),facing:+R.facing.toFixed(2),speed:+R.speed.toFixed(2),grounded:R.grounded,crouching:R.crouching,sprinting:R.sprinting,punching:Fe.punching},camera:{yaw:+jt.yaw.toFixed(2),pitch:+jt.pitch.toFixed(2),x:+qe.position.x.toFixed(2),y:+qe.position.y.toFixed(2),z:+qe.position.z.toFixed(2)},hp:+R.hp.toFixed(0),money:R.money,wanted:ue.level,dead:R.dead,world:{blocks:121,base:{x0:Xe.x0,x1:Xe.x1,z0:Xe.z0,z1:Xe.z1},landmarks:gv.places.map(s=>s.name)},weather:{label:fs.label,raining:fs.raining,intensity:+fs.intensity.toFixed(2),remaining:+fs.remaining.toFixed(1),wetness:+fs.wetness.toFixed(2)},calendar:{day:un.calendarDay,time:un.label},missions:Ii.quests.map(s=>({id:s.id,status:s.status,count:s.count,visited:s.visited,attemptDay:s.attemptDay})),target:Ii.target(),apartments:Ir,weapons:Object.keys(Ce.owned),soldiers:Mi.list.filter(s=>Math.hypot(s.pos.x-R.pos.x,s.pos.z-R.pos.z)<100).map(s=>({x:+s.pos.x.toFixed(1),y:s.y,z:+s.pos.z.toFixed(1),hp:s.hp,dead:s.dead,faction:s.faction})),vehicle:R.vehicle?{kind:R.vehicle.kind,speed:+R.vehicle.speed.toFixed(1),health:+R.vehicle.health.toFixed(0),x:+R.vehicle.x.toFixed(1),z:+R.vehicle.z.toFixed(1),yaw:+R.vehicle.yaw.toFixed(2)}:null,counts:{vehicles:re.list.length,traffic:re.list.filter(s=>s.state==="traffic").length,police:re.list.filter(s=>s.state==="police").length,peds:Ue.list.filter(s=>s.active&&s.type==="civ").length,cops:Ue.list.filter(s=>s.active&&s.type==="cop").length},nearVehicle:$p&&$p.kind?$p.kind:null,menu:_o.classList.contains("hidden")?null:px,usingModel:Fe.usingModel});window.advanceTime=s=>{let t=Math.max(1,Math.round(s/16.666666666666668));for(let e=0;e<t;e++)Ov(1/60);zv()};window.addEventListener("resize",()=>{Ii.opened&&Ii.tab==="map"&&Ii.drawMap()});window.__gca={audio:Et,blast:MA,shake:t=>{ks=Math.max(ks,t)},adventure:Ii,THREE:{Object3D:Re,Group:Yt,Mesh:J,BoxGeometry:Gt,PlaneGeometry:xe,SphereGeometry:Oe,CylinderGeometry:fe,TorusGeometry:Si,MeshStandardMaterial:kt,MeshBasicMaterial:de,MeshLambertMaterial:Yc,CanvasTexture:gn,DoubleSide:ze,Color:bt,Vector3:P},weather:fs,soldiers:Mi,base:fx,districts:gv,aptOwned:Ir,resetPlayer:Zl,drawRadar:Pv,combat:Ce,giveWeapon:s=>{Ce.giveWeapon(s),Ce.addAmmo(s,999);let t=Ce.owned[s];t&&yi[s].mag&&(t.mag=yi[s].mag),kr()},equip:s=>{Ce.equip(s),kr()},openWheel:()=>kv(),startArmory:Rv,places:er,daynight:un,minigames:Yl,jobs:nr,fare:hn,startJob:Cv,usePlace:wv,vehicles:re,peds:Ue,wanted:ue,setWanted:ni,crime:Pr,hurtPlayer:Lr,enterVehicle:Iv,exitVehicle:n0,clock:hu,fx:vi,input:Nt,player:R,cam:jt,stephen:Fe,world:ae,camera:qe,renderer:wn,settings:te,setState:Kn,get state(){return ge},startGame:xx,goMenu:Ru,startIntro:t0,openPause:r0,closePause:yx,apartment:ya};})();
 /*! Bundled license information:
 

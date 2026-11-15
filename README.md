@@ -33,6 +33,13 @@ python3 -m http.server 8080
 - **Traffic lights** at every junction: a pole, a mast arm over the carriageway and a three-lens head, cycling green, amber, red on a 24-second loop. Cars brake for the stop line when their road is not green, and lean on the horn if you stand in the road while it is.
 - Traffic and a living crowd: every pedestrian has their own stride and posture, and people walk dogs, jog, shoot hoops, smoke, fold their arms, check their phones or stop to chat in pairs. They duck when shots land near them, glance at the noise, and scatter when things turn ugly.
 
+### The hilltop village
+- **A village on a hill west of town.** The grassland west of the city rises 30 m into a broad, flat-topped hill, and the land fades back into the city ground over the last 30 m of its edges, so you can walk off the top and down into town without a seam in the floor.
+- **A way up from the city**: the climb leaves a city street at the foot of the hill and switchbacks up the flank — tarmac at the bottom, then gravel, then a mud track — to the high street on the plateau.
+- **19 houses, no two alike**: stone footings, plaster walls in seven colours, tiled gable roofs with ridge caps and chimneys, doors with steps and lintels, shuttered windows, timber framing, porches, lean-to sheds and a barn. Each one sits level on its own footing, set back behind post-and-rail fences in a yard.
+- Village lanes of mud with cart ruts and trampled grass verges, wells, hay bales and trees down the flanks, and the whole village is drawn with instanced parts, so all of it costs a handful of draw calls.
+- **Marked on the radar**: a green badge with two cottages and a "V" sits over the hilltop and slides round to the rim of the dial when the village is out of range.
+
 ### Driving
 - Cars, vans, police cruisers, a Humvee and a drivable tank.
 - Arcade handling with drift, handbrake, engine and tyre audio, horns and a siren. Braking hard or breaking traction leaves black tyre marks on the road with smoke curling off the wheels, and the brake lights glow red whenever a car slows or reverses. Lift off the throttle at speed and the exhaust cracks with a puff of flame, which is loud enough to set the pigeons off too.
@@ -112,7 +119,7 @@ On phones and tablets a left-side thumbstick handles movement, dragging the righ
 
 ## Tests
 
-Five headless regression suites pull the relevant functions straight out of the
+Six headless regression suites pull the relevant functions straight out of the
 game file and run them against stub rigs. No dependencies, no browser:
 
 ```bash
@@ -121,6 +128,7 @@ node tests/vehicle-check.mjs
 node tests/bird-check.mjs
 node tests/rain-check.mjs
 node tests/wet-check.mjs
+node tests/village-check.mjs
 ```
 
 The pedestrian suite covers the head pivot clamp, gait and idle variation,
@@ -129,6 +137,14 @@ the traffic dodge. The vehicle suite covers tyre marks (when they appear, their
 spacing, the 90 m distance gate and cleanup), brake lights (lazy creation,
 sharing, placement, when they light up), and crash damage (armour, wrecking and
 the wreck hook, and exhaust backfires). The bird suite covers flock flight: orbiting the flock centre, climbing off the floor, the speed cap, separation, bank and pitch limits, wing beat, facing the direction of travel, and flocks relocating to the player when left behind, plus gunfire and exhaust backfires scattering the nearby flock upward, and landing: when a flock comes down, how it settles, folds its wings and pecks, that it waits for its timer and stays airborne when spooked or far away, and that a take-off lifts every bird. It also checks the scare radius: that walking gives the flock more room than standing still, that sprinting scares them from further out, that a fast player counts even without the sprint toggle, and that the radius never shrinks as you speed up. The rain suite covers the weather field: that every drop holds a fixed world column instead of riding along with the player, that only drops at the edge of the field re-wrap (by exactly one cell) as you walk, that rain falls and wraps back to the top without sinking into the ground or climbing above its fall column, the streak shape, and that the splashes stay on their own patches of ground and blink rather than teleporting. The wet-effects suite covers what the rain leaves behind: ripple rings lying on the ground and growing as they age, fading out, staying fixed to the map rather than moving with you, roof heights measured per car type, spray rising just off a roof, splash motes getting lifted onto the roof of the car under them, nothing at all when it is dry, and everything clearing away when the rain stops.
+The village suite runs the hill module itself and checks the land: that the
+summit really is 30 m up, that the hill melts into the city ground with no step
+anywhere along the patch border, that the plateau is flat enough to build on and
+the worst slope on the way up is a walk rather than a cliff, that the climb
+starts at city level and ends at the village, that each lane is level through
+the village, that every house stands level on the flat and none of them overlap,
+that the houses are individual rather than one repeated block, and that the
+village stays cheap to draw.
 
 ## Credits
 
