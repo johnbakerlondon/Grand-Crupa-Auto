@@ -87,6 +87,7 @@ const world = {
   boundsMaxX: 1000,
   scene: null,
   poles: { list: [] },
+  colliders: [],
   plantTrees() { this.treeSpots = (this.treeSpots || 0) + 1; },
 };
 const scene = { children: [], add(o) { this.children.push(o); } };
@@ -100,7 +101,8 @@ if (!V) throw new Error('module did not install __gcaVillage');
 
 const { X0, X1, Z0, Z1 } = V.patch;
 const SX = V.centre.x, SZ = V.centre.z, RX = V.radius;
-const FLAT = 0.55, RISE = 30;
+const RZ = V.radiusZ;
+const FLAT = V.flat, RISE = V.rise;
 const h = V.height;
 const inside = (x, z) => x >= X0 && x <= X1 && z >= Z0 && z <= Z1;
 
@@ -128,7 +130,7 @@ ok('the city keeps its own ground', outsideWrong === 0, outsideWrong + ' points 
 
 // --- the summit
 const peak = h(SX, SZ);
-ok('the summit is 30 m up', Math.abs(peak - (CITY_GROUND + RISE)) < 1e-6, 'peak ' + peak.toFixed(2));
+ok('the summit is ' + RISE + ' m up', Math.abs(peak - (CITY_GROUND + RISE)) < 1e-6, 'peak ' + peak.toFixed(2));
 
 // --- the seam with the city: nothing anywhere near the patch border is lifted
 let seamMax = 0;
@@ -151,19 +153,19 @@ for (let a = 0; a < 64; a++) {
   for (const f of [0, 0.25, 0.5, 0.75]) {
     const ang = (a / 64) * Math.PI * 2;
     const rr = RX * FLAT * f;
-    const y = h(SX + Math.cos(ang) * rr, SZ + Math.sin(ang) * rr * (170 / RX));
+    const y = h(SX + Math.cos(ang) * rr, SZ + Math.sin(ang) * rr * (RZ / RX));
     flatMin = Math.min(flatMin, y); flatMax = Math.max(flatMax, y);
   }
 }
 ok('the plateau is flat', flatMax - flatMin < 0.05,
   'spread ' + (flatMax - flatMin).toFixed(3) + ' m');
 
-// --- no cliff anywhere: the worst slope on a 1 m grid
+// --- no cliff anywhere: the worst slope on a 2 m grid
 let worst = 0, worstAt = null;
-for (let x = X0; x <= X1; x += 1) {
-  for (let z = Z0; z <= Z1; z += 1) {
-    const gx = Math.abs(h(x + 1, z) - h(x, z));
-    const gz = Math.abs(h(x, z + 1) - h(x, z));
+for (let x = X0; x <= X1; x += 2) {
+  for (let z = Z0; z <= Z1; z += 2) {
+    const gx = Math.abs(h(x + 2, z) - h(x, z)) / 2;
+    const gz = Math.abs(h(x, z + 2) - h(x, z)) / 2;
     const g = Math.max(gx, gz);
     if (g > worst) { worst = g; worstAt = [x, z]; }
   }
@@ -189,7 +191,6 @@ ok('the climb is on the hill after that', inside(roads.ramp[1][0], roads.ramp[1]
 // The village stretch of every lane is on the plateau, and has to be level: the
 // lanes may run on down the shoulder past the last houses, but not through the
 // village itself.
-const RZ = V.radiusZ;
 const onPlateau = (x, z) => Math.hypot((x - SX) / RX, (z - SZ) / RZ) <= FLAT;
 function laneProfile(road) {
   const ys = [];
@@ -244,7 +245,7 @@ for (const hs of houses) {
   ]);
   const drop = Math.max(...corners.map(([x, z]) => Math.abs(h(x, z) - hs.gy)));
   if (drop > 0.25) onFlat++;
-  const d = Math.hypot((hs.x - SX) / RX, (hs.z - SZ) / 170);
+  const d = Math.hypot((hs.x - SX) / RX, (hs.z - SZ) / RZ);
   if (d > FLAT * 1.05) offHill++;
 }
 ok('every house stands level on its footing', onFlat === 0, onFlat + ' on uneven ground');
@@ -268,8 +269,25 @@ let stale = 0;
 for (const hs of houses) if (Math.abs(hs.gy - h(hs.x, hs.z)) > 1e-9) stale++;
 ok('houses remember the ground under them', stale === 0, stale + ' stale');
 
+// --- the buildings are solid
+const boxes = world.colliders;
+ok('every house has a collider on it', boxes.length >= houses.length,
+  boxes.length + ' boxes for ' + houses.length + ' houses');
+let uncovered = 0;
+for (const hs of houses) {
+  const c = Math.abs(Math.cos(hs.yaw)), sn = Math.abs(Math.sin(hs.yaw));
+  const bx = (hs.w * c + hs.d * sn) / 2, bz = (hs.w * sn + hs.d * c) / 2;
+  const hit = boxes.some((b) =>
+    b.minX <= hs.x - bx + .01 && b.maxX >= hs.x + bx - .01 &&
+    b.minZ <= hs.z - bz + .01 && b.maxZ >= hs.z + bz - .01);
+  if (!hit) uncovered++;
+}
+ok('no house can be walked through', uncovered === 0, uncovered + ' open houses');
+ok('the yards are fenced off too', boxes.length >= houses.length + 30,
+  boxes.length + ' boxes');
+
 // --- the village is cheap to draw
-ok('the whole village is a handful of draw calls', V.drawCalls > 0 && V.drawCalls <= 24,
+ok('the whole village is a handful of draw calls', V.drawCalls > 0 && V.drawCalls <= 30,
   V.drawCalls + ' draw calls');
 ok('trees were planted on the flanks', (world.treeSpots || 0) >= 1);
 

@@ -6045,11 +6045,11 @@ ${wn.info.render.calls} calls  ${(wn.info.render.triangles/1e3).toFixed(0)}k tri
    * layout
    * ------------------------------------------------------------------ */
   var SX = -640, SZ = 0;                 // summit
-  var RX = 188, RZ = 170;                // hill footprint (ellipse)
-  var RISE = 30;                         // metres above the city plain
-  var FLAT = .55;                        // fraction of the radius that is flat
-  var X0 = -872, X1 = -356, Z0 = -254, Z1 = 254;   // the patch of land itself
-  var STEP = 3;
+  var RX = 260, RZ = 228;                // hill footprint (ellipse)
+  var RISE = 34;                         // metres above the city plain
+  var FLAT = .64;                        // fraction of the radius that is flat
+  var X0 = -980, X1 = -356, Z0 = -330, Z1 = 330;   // the patch of land itself
+  var STEP = 3.5;
 
   var base = world.groundHeight.bind(world);
 
@@ -6074,7 +6074,7 @@ ${wn.info.render.calls} calls  ${(wn.info.render.triangles/1e3).toFixed(0)}k tri
 
   /* everything that walks, drives or falls reads this, so the hill is solid */
   world.groundHeight = groundAt;
-  world.bounds = Math.max(world.bounds, 880);      // let people walk out there
+  world.bounds = Math.max(world.bounds, 1010);     // let people walk out there
 
   /* ------------------------------------------------------------------ *
    * textures
@@ -6086,7 +6086,7 @@ ${wn.info.render.calls} calls  ${(wn.info.render.triangles/1e3).toFixed(0)}k tri
     var t = new T.CanvasTexture(c);
     t.wrapS = t.wrapT = 1000;                        // RepeatWrapping
     t.colorSpace = 'srgb';
-    t.anisotropy = 4;
+    t.anisotropy = 8;
     return t;
   }
   function noise(ctx, size, n, alpha, dark) {
@@ -6097,81 +6097,138 @@ ${wn.info.render.calls} calls  ${(wn.info.render.triangles/1e3).toFixed(0)}k tri
     }
   }
 
-  var mudTex = tex(128, function (c, s) {
-    c.fillStyle = '#6b5334'; c.fillRect(0, 0, s, s);
-    for (var i = 0; i < 260; i++) {
-      c.fillStyle = ['#7b6141', '#5d482c', '#725a39', '#836743'][i % 4];
+  var mudTex = tex(256, function (c, s) {
+    c.fillStyle = '#6f5738'; c.fillRect(0, 0, s, s);
+    for (var i = 0; i < 900; i++) {
+      c.fillStyle = ['#7d6444', '#5e4a2e', '#765d3c', '#876c48', '#66513a'][i % 5];
       c.beginPath();
-      c.ellipse(Math.random() * s, Math.random() * s, 3 + Math.random() * 8, 2 + Math.random() * 5, Math.random() * 3, 0, 6.3);
+      c.ellipse(Math.random() * s, Math.random() * s, 3 + Math.random() * 12, 2 + Math.random() * 7, Math.random() * 3, 0, 6.3);
       c.fill();
     }
-    // two tyre ruts down the middle of the lane
-    c.fillStyle = 'rgba(48,36,22,.55)';
-    c.fillRect(s * .24, 0, s * .11, s);
-    c.fillRect(s * .65, 0, s * .11, s);
-    noise(c, s, 700, .22, true);
+    /* grit and small stones */
+    for (i = 0; i < 2400; i++) {
+      c.fillStyle = i % 3 ? 'rgba(42,32,20,.32)' : 'rgba(170,150,112,.3)';
+      c.fillRect(Math.random() * s, Math.random() * s, 1 + Math.random() * 2, 1 + Math.random() * 2);
+    }
+    for (i = 0; i < 90; i++) {
+      c.fillStyle = ['#9c8f74', '#7d7059', '#a89a7e'][i % 3];
+      var sx = Math.random() * s, sy = Math.random() * s, sr = .8 + Math.random() * 2.4;
+      c.beginPath(); c.arc(sx, sy, sr, 0, 6.3); c.fill();
+      c.fillStyle = 'rgba(40,32,20,.25)';
+      c.fillRect(sx + sr * .4, sy + sr * .4, sr * 1.4, sr * .7);
+    }
+    /* cart ruts down the lane, with a raised crown between them */
+    [s * .23, s * .63].forEach(function (x) {
+      c.fillStyle = 'rgba(46,34,20,.5)'; c.fillRect(x, 0, s * .13, s);
+      c.fillStyle = 'rgba(38,28,16,.45)'; c.fillRect(x + s * .05, 0, s * .03, s);
+      c.fillStyle = 'rgba(146,126,94,.22)'; c.fillRect(x - s * .015, 0, s * .02, s);
+      c.fillStyle = 'rgba(146,126,94,.22)'; c.fillRect(x + s * .125, 0, s * .02, s);
+    });
+    c.fillStyle = 'rgba(150,130,98,.12)'; c.fillRect(s * .38, 0, s * .24, s);
+    noise(c, s, 2200, .18, true);
+    noise(c, s, 900, .1, false);
   });
   mudTex.repeat.set(1, 1);
 
-  var gravelTex = tex(128, function (c, s) {
+  var gravelTex = tex(256, function (c, s) {
     c.fillStyle = '#8b8377'; c.fillRect(0, 0, s, s);
-    for (var i = 0; i < 900; i++) {
-      c.fillStyle = ['#9c9488', '#776f64', '#a8a094', '#6a6259'][i % 4];
-      c.fillRect(Math.random() * s, Math.random() * s, 2, 2);
+    for (var i = 0; i < 5200; i++) {
+      c.fillStyle = ['#9c9488', '#776f64', '#a8a094', '#6a6259', '#b3aa9c'][i % 5];
+      var g = 1.4 + Math.random() * 3.2;
+      c.beginPath(); c.ellipse(Math.random() * s, Math.random() * s, g, g * .8, Math.random() * 3, 0, 6.3); c.fill();
     }
+    noise(c, s, 1600, .16, true);
   });
 
-  var asphaltTex = tex(128, function (c, s) {
-    c.fillStyle = '#3a3c40'; c.fillRect(0, 0, s, s);
-    noise(c, s, 1400, .1, false);
-    noise(c, s, 1400, .18, true);
+  var asphaltTex = tex(256, function (c, s) {
+    c.fillStyle = '#3d4045'; c.fillRect(0, 0, s, s);
+    for (var i = 0; i < 7000; i++) {
+      c.fillStyle = i % 3 ? 'rgba(24,26,29,.5)' : 'rgba(118,124,132,.35)';
+      c.fillRect(Math.random() * s, Math.random() * s, 1 + Math.random() * 2, 1 + Math.random() * 2);
+    }
+    /* two worn wheel tracks */
+    [s * .28, s * .72].forEach(function (x) {
+      c.fillStyle = 'rgba(150,156,164,.07)';
+      c.fillRect(x - s * .07, 0, s * .14, s);
+    });
+    /* a tar seam down the middle */
+    c.fillStyle = 'rgba(20,21,24,.55)'; c.fillRect(s * .49, 0, s * .02, s);
+    noise(c, s, 1200, .12, true);
+    noise(c, s, 1200, .1, false);
   });
 
-  var stoneTex = tex(128, function (c, s) {
-    c.fillStyle = '#8e8a80'; c.fillRect(0, 0, s, s);
-    var h = s / 6;
-    for (var r = 0; r < 6; r++) {
-      var off = (r % 2) * s / 8;
-      for (var x = -8; x < s; x += s / 4) {
-        c.fillStyle = ['#9a968c', '#827e75', '#918d84'][(r + x) % 3];
-        c.fillRect(x + off + 1, r * h + 1, s / 4 - 2, h - 2);
+  var stoneTex = tex(256, function (c, s) {
+    c.fillStyle = '#6f6b62'; c.fillRect(0, 0, s, s);
+    var rows = 8, rh = s / rows;
+    for (var r = 0; r < rows; r++) {
+      var off = (r % 2) * s / 10;
+      for (var x = -s; x < s; x += s / 4) {
+        c.fillStyle = ['#9a968c', '#827e75', '#918d84', '#a5a096', '#78746c'][(r + x / 37) % 5 | 0];
+        c.fillRect(x + off + 1.5, r * rh + 1.5, s / 4 - 3, rh - 3);
+        c.fillStyle = 'rgba(255,255,255,.07)';
+        c.fillRect(x + off + 2, r * rh + 2, s / 4 - 4, 2);
+        c.fillStyle = 'rgba(0,0,0,.13)';
+        c.fillRect(x + off + 2, r * rh + rh - 5, s / 4 - 4, 3);
       }
     }
-    noise(c, s, 400, .18, true);
+    noise(c, s, 1400, .16, true);
   });
 
-  var tileTex = tex(128, function (c, s) {
-    c.fillStyle = '#8d4a35'; c.fillRect(0, 0, s, s);
-    for (var r = 0; r < 8; r++) {
-      for (var x = 0; x < 8; x++) {
-        c.fillStyle = ['#9c5238', '#7d402c', '#a25a3f'][(r + x) % 3];
+  var tileTex = tex(256, function (c, s) {
+    c.fillStyle = '#7a3f2b'; c.fillRect(0, 0, s, s);
+    var n = 10, step = s / n;
+    for (var r = 0; r < n; r++) {
+      for (var x = 0; x < n; x++) {
+        var cx = x * step + step / 2 + (r % 2) * step / 2;
+        c.fillStyle = ['#9c5238', '#84422e', '#a85c40', '#773a28'][(r + x) % 4];
         c.beginPath();
-        c.arc(x * s / 8 + s / 16, r * s / 8 + s / 8, s / 18, Math.PI, 0);
+        c.arc(cx, r * step + step * .72, step * .62, Math.PI, 0);
         c.fill();
+        c.fillStyle = 'rgba(255,220,190,.09)';
+        c.beginPath();
+        c.arc(cx, r * step + step * .66, step * .5, Math.PI * 1.08, Math.PI * 1.92);
+        c.fill();
+        c.fillStyle = 'rgba(30,14,8,.22)';
+        c.fillRect(cx - step * .62, r * step + step * .70, step * 1.24, 2.5);
       }
     }
-    noise(c, s, 300, .2, true);
+    noise(c, s, 900, .16, true);
   });
 
-  var woodTex = tex(64, function (c, s) {
+  var woodTex = tex(128, function (c, s) {
     c.fillStyle = '#4d3521'; c.fillRect(0, 0, s, s);
-    for (var i = 0; i < 40; i++) {
-      c.fillStyle = ['#5a3f28', '#412c1b', '#63482f'][i % 3];
-      c.fillRect(0, Math.random() * s, s, 1 + Math.random() * 2);
+    for (var i = 0; i < 70; i++) {
+      c.fillStyle = ['#5a3f28', '#412c1b', '#63482f', '#37241a'][i % 4];
+      c.fillRect(0, Math.random() * s, s, .8 + Math.random() * 2);
     }
+    /* plank joins */
+    for (i = 0; i < 3; i++) {
+      c.fillStyle = 'rgba(24,15,8,.5)';
+      c.fillRect(0, s * (i / 3) + 2, s, 2);
+    }
+    noise(c, s, 500, .14, true);
   });
 
-  var grassTex = tex(128, function (c, s) {
+  var grassTex = tex(256, function (c, s) {
     c.fillStyle = '#4a6b32'; c.fillRect(0, 0, s, s);
-    for (var i = 0; i < 1200; i++) {
-      c.fillStyle = ['#557a39', '#405e2b', '#5f8440', '#3b5728'][i % 4];
-      c.fillRect(Math.random() * s, Math.random() * s, 2, 3);
+    for (var i = 0; i < 5000; i++) {
+      c.fillStyle = ['#557a39', '#405e2b', '#5f8440', '#3b5728', '#638a45', '#365026'][i % 6];
+      c.fillRect(Math.random() * s, Math.random() * s, 1.5 + Math.random() * 2.5, 2 + Math.random() * 4);
     }
+    /* a few clover patches and bare earth */
+    for (i = 0; i < 26; i++) {
+      c.fillStyle = i % 3 ? 'rgba(96,132,68,.5)' : 'rgba(108,92,62,.4)';
+      c.beginPath();
+      c.ellipse(Math.random() * s, Math.random() * s, 6 + Math.random() * 16, 5 + Math.random() * 12, Math.random() * 3, 0, 6.3);
+      c.fill();
+    }
+    noise(c, s, 2000, .12, true);
   });
 
-  var plasterTex = tex(64, function (c, s) {
+  var plasterTex = tex(128, function (c, s) {
     c.fillStyle = '#ffffff'; c.fillRect(0, 0, s, s);
-    noise(c, s, 900, .12, true);
+    noise(c, s, 1600, .1, true);
+    noise(c, s, 900, .12, false);
   });
 
   function mat(opts) { return new T.MeshStandardMaterial(opts); }
@@ -6187,7 +6244,9 @@ ${wn.info.render.calls} calls  ${(wn.info.render.triangles/1e3).toFixed(0)}k tri
     plaster: mat({ map: plasterTex, roughness: .93, metalness: 0 }),
     glass:   mat({ color: 0x2b3a44, roughness: .22, metalness: .5, emissive: 0x0d1418, emissiveIntensity: 1 }),
     dark:    mat({ color: 0x2a2622, roughness: .9, metalness: 0 }),
-    thatch:  mat({ color: 0x8a7440, roughness: .98, metalness: 0 })
+    thatch:  mat({ color: 0x8a7440, roughness: .98, metalness: 0 }),
+    iron:    mat({ color: 0x2b2d31, roughness: .5, metalness: .62 }),
+    glow:    mat({ color: 0x3a2c1c, roughness: .35, metalness: 0, emissive: 0xffc272, emissiveIntensity: 2.2 })
   };
 
   /* ------------------------------------------------------------------ *
@@ -6258,7 +6317,7 @@ ${wn.info.render.calls} calls  ${(wn.info.render.triangles/1e3).toFixed(0)}k tri
       var rx = p[0] - nxp * hw, rz = p[1] - nzp * hw;
       pos.push(lx, groundAt(lx, lz) + lift, lz);
       pos.push(rx, groundAt(rx, rz) + lift, rz);
-      uv.push(0, run / 9, 1, run / 9);
+      uv.push(0, run / 4.5, width / 2.6, run / 4.5);
       if (i) {
         var k = (i - 1) * 2;
         idx.push(k, k + 2, k + 1, k + 1, k + 2, k + 3);
@@ -6353,6 +6412,9 @@ ${wn.info.render.calls} calls  ${(wn.info.render.triangles/1e3).toFixed(0)}k tri
     putLocal('door', BOX, M.wood, h, 0, .56 + 1.05, d / 2 + .04, 1.05, 2.1, .12, 0, cfg.door || 0x5a3f28);
     putLocal('frame', BOX, M.wood, h, 0, .56 + 2.14, d / 2 + .05, 1.32, .16, .14, 0, 0x412c1b);
     putLocal('step', BOX, M.stone, h, 0, .2, d / 2 + .42, 1.6, .4, .8, 0, null);
+    /* a lantern by the door, so the fronts read at night */
+    putLocal('lampGlass', BOX, M.glow, h, w * .33, .56 + 2.24, d / 2 + .16, .26, .34, .26, 0, null);
+    putLocal('lampCap', BOX, M.iron, h, w * .33, .56 + 2.46, d / 2 + .16, .34, .1, .34, 0, null);
     /* windows */
     var wins = cfg.windows;
     var wy = .56 + hw * .58;
@@ -6404,6 +6466,12 @@ ${wn.info.render.calls} calls  ${(wn.info.render.triangles/1e3).toFixed(0)}k tri
       putLocal('bell', BOX, M.stone, h, 0, .56 + hw + roofH + .35, 0, .9, .7, .9, 0, null);
       putLocal('roof', PRISM, M.roof, h, 0, .56 + hw + roofH + .7, 0, 1.3, .6, 1.3, 0, roofCol);
     }
+    /* the walls are solid: an AABB around the turned footprint */
+    var ac = Math.abs(Math.cos(yaw)), as = Math.abs(Math.sin(yaw));
+    var bx = (w * ac + d * as) / 2 + .45, bz = (w * as + d * ac) / 2 + .45;
+    world.colliders.push({
+      minX: cfg.x - bx, maxX: cfg.x + bx, minZ: cfg.z - bz, maxZ: cfg.z + bz,
+    });
     houses.push({ x: cfg.x, z: cfg.z, yaw: yaw, w: w, d: d, gy: gy });
   }
 
@@ -6430,6 +6498,27 @@ ${wn.info.render.calls} calls  ${(wn.info.render.triangles/1e3).toFixed(0)}k tri
   /* and the south lane */
   house({ x: -664, z: -52, yaw: Math.PI / 2, w: 6.2, d: 5.4, h: 2.9, wall: WALLS[5], roof: ROOFS[1], windows: 2, chimney: 'r' });
   house({ x: -702, z: -60, yaw: Math.PI / 2, w: 8.4, d: 5.6, h: 3.0, wall: WALLS[3], roof: ROOFS[2], windows: 2, chimney: 'l', porch: true });
+  /* the street carries on west */
+  house({ x: -748, z: front, yaw: Math.PI, w: 7.2, d: 6.0, h: 3.0, wall: WALLS[1], roof: ROOFS[0], windows: 2, chimney: 'r', upper: true, timber: true });
+  house({ x: -748, z: -front, yaw: 0, w: 9.0, d: 5.8, h: 3.1, wall: WALLS[4], roof: ROOFS[3], windows: 3, chimney: 'l', porch: true, shutters: true });
+  house({ x: -774, z: front, yaw: Math.PI, w: 6.4, d: 5.6, h: 2.9, wall: WALLS[6], roof: ROOFS[1], windows: 2, chimney: 'l', shed: true });
+  house({ x: -774, z: -front, yaw: 0, w: 7.6, d: 6.4, h: 3.2, wall: WALLS[2], roof: ROOFS[2], windows: 2, chimney: 'r', timber: true });
+  house({ x: -800, z: front, yaw: Math.PI, w: 8.2, d: 6.0, h: 3.0, wall: WALLS[5], roof: ROOFS[0], windows: 3, chimney: 'l', upper: true });
+  house({ x: -800, z: -front, yaw: 0, w: 6.6, d: 5.4, h: 2.8, wall: WALLS[0], roof: ROOFS[3], windows: 2, chimney: 'r', porch: true, shutters: true });
+  /* and a back row looking down over the street */
+  house({ x: -590, z: 38, yaw: Math.PI, w: 7.0, d: 6.2, h: 3.0, wall: WALLS[3], roof: ROOFS[1], windows: 2, chimney: 'l', shed: true });
+  house({ x: -640, z: 38, yaw: Math.PI, w: 9.4, d: 6.0, h: 3.2, wall: WALLS[5], roof: ROOFS[0], windows: 3, chimney: 'r', timber: true, upper: true });
+  house({ x: -690, z: 38, yaw: Math.PI, w: 6.2, d: 5.6, h: 2.8, wall: WALLS[1], roof: ROOFS[2], windows: 2, chimney: 'l' });
+  house({ x: -744, z: 38, yaw: Math.PI, w: 8.6, d: 6.2, h: 3.3, wall: WALLS[0], roof: ROOFS[3], windows: 2, chimney: 'r', barn: true });
+  house({ x: -600, z: -38, yaw: 0, w: 6.8, d: 5.8, h: 2.9, wall: WALLS[2], roof: ROOFS[1], windows: 2, chimney: 'l', shutters: true });
+  house({ x: -652, z: -38, yaw: 0, w: 8.8, d: 6.0, h: 3.1, wall: WALLS[4], roof: ROOFS[2], windows: 3, chimney: 'r', porch: true });
+  house({ x: -706, z: -38, yaw: 0, w: 6.4, d: 5.4, h: 2.9, wall: WALLS[6], roof: ROOFS[0], windows: 2, chimney: 'l', timber: true });
+  house({ x: -764, z: -38, yaw: 0, w: 9.2, d: 6.4, h: 3.4, wall: WALLS[3], roof: ROOFS[3], windows: 2, chimney: 'r', upper: true });
+  /* out on the lanes */
+  house({ x: -734, z: 68, yaw: -Math.PI / 2, w: 7.4, d: 5.8, h: 3.0, wall: WALLS[1], roof: ROOFS[2], windows: 2, chimney: 'l', shed: 'wide' });
+  house({ x: -644, z: 60, yaw: -Math.PI / 2, w: 6.6, d: 5.6, h: 2.9, wall: WALLS[5], roof: ROOFS[1], windows: 2, chimney: 'r', porch: true });
+  house({ x: -636, z: -62, yaw: Math.PI / 2, w: 7.0, d: 5.8, h: 3.0, wall: WALLS[0], roof: ROOFS[3], windows: 2, chimney: 'l', shutters: true });
+  house({ x: -740, z: -64, yaw: Math.PI / 2, w: 6.4, d: 5.4, h: 2.8, wall: WALLS[4], roof: ROOFS[0], windows: 2, chimney: 'r', timber: true });
 
   /* --- fences around the yards: two instances, two draw calls --- */
   var yards = houses.filter(function (h, i) { return i % 3 !== 2; });
@@ -6459,6 +6548,12 @@ ${wn.info.render.calls} calls  ${(wn.info.render.triangles/1e3).toFixed(0)}k tri
         var p = sidePoint(h, side, off, t);
         put('post', BOX, M.wood, p[0], groundAt(p[0], p[1]) + .58, p[1], .13, 1.16, .13, h.yaw, null);
       }
+      /* and the fence itself stops you */
+      var e1 = sidePoint(h, side, off, -len / 2), e2 = sidePoint(h, side, off, len / 2);
+      world.colliders.push({
+        minX: Math.min(e1[0], e2[0]) - .2, maxX: Math.max(e1[0], e2[0]) + .2,
+        minZ: Math.min(e1[1], e2[1]) - .2, maxZ: Math.max(e1[1], e2[1]) + .2,
+      });
     });
   });
   function sidePoint(h, side, off, t) {
@@ -6471,6 +6566,7 @@ ${wn.info.render.calls} calls  ${(wn.info.render.triangles/1e3).toFixed(0)}k tri
   var WX = -626, WZ = -6;
   put('well', new T.CylinderGeometry(1.5, 1.6, 1.1, 12), M.stone, WX, groundAt(WX, WZ) + .55, WZ, 1, 1, 1, 0, null);
   put('well', new T.CylinderGeometry(1.15, 1.15, .12, 12), M.dark, WX, groundAt(WX, WZ) + 1.12, WZ, 1, 1, 1, 0, null);
+  world.colliders.push({ minX: WX - 1.9, maxX: WX + 1.9, minZ: WZ - 1.9, maxZ: WZ + 1.9 });
   [[-1.35, -1.35], [1.35, -1.35], [-1.35, 1.35], [1.35, 1.35]].forEach(function (o) {
     put('post', BOX, M.wood, WX + o[0], groundAt(WX + o[0], WZ + o[1]) + 1.1, WZ + o[1], .16, 2.2, .16, 0, null);
   });
@@ -6480,6 +6576,84 @@ ${wn.info.render.calls} calls  ${(wn.info.render.triangles/1e3).toFixed(0)}k tri
     put('hay', new T.CylinderGeometry(1.5, 1.9, 2.4, 10), M.thatch, p[0], groundAt(p[0], p[1]) + 1.2, p[1], 1, 1, 1, 0, null);
     put('hay', new T.ConeGeometry(1.55, 1.0, 10), M.thatch, p[0], groundAt(p[0], p[1]) + 2.4, p[1], 1, 1, 1, 0, null);
   });
+
+  /* --- lanterns along the lanes --- */
+  function lamp(x, z) {
+    var y = groundAt(x, z);
+    put('lampPost', BOX, M.iron, x, y + 2.1, z, .17, 4.2, .17, 0, null);
+    put('lampCap', BOX, M.iron, x, y + 4.38, z, .58, .12, .58, 0, null);
+    put('lampGlass', BOX, M.glow, x, y + 4.08, z, .42, .56, .42, 0, null);
+    put('lampCap', BOX, M.iron, x, y + 3.76, z, .5, .1, .5, 0, null);
+  }
+  [[-556, 8.5], [-598, -8.5], [-640, 8.5], [-682, -8.5], [-724, 8.5], [-766, -8.5], [-806, 6]]
+    .forEach(function (p) { lamp(p[0], p[1]); });
+  [[-742, 58], [-698, -46], [-546, 13], [-350, 12]].forEach(function (p) { lamp(p[0], p[1]); });
+
+  /* real lights under the lanterns, so the village is lit after dark */
+  var lampSpots = [[-556, 8.5], [-598, -8.5], [-640, 8.5], [-682, -8.5], [-724, 8.5], [-766, -8.5], [-806, 6]];
+  lampSpots.forEach(function (p, i) {
+    if (i % 2) return;
+    var l = new T.PointLight(0xffb877, 115, 32, 2);
+    l.position.set(p[0], groundAt(p[0], p[1]) + 4.05, p[1]);
+    l.castShadow = false;
+    scene.add(l);
+  });
+
+  /* a warm pool of light on the ground under each lantern */
+  var poolTex = (function () {
+    var c = document.createElement('canvas');
+    c.width = c.height = 128;
+    var d = c.getContext('2d');
+    for (var r = 62; r > 0; r -= 2) {
+      var a = Math.pow(1 - r / 64, 2.1) * .5;
+      d.fillStyle = 'rgba(255,206,150,' + a.toFixed(3) + ')';
+      d.beginPath(); d.arc(64, 64, r, 0, 6.3); d.fill();
+    }
+    var t = new T.CanvasTexture(c);
+    t.colorSpace = 'srgb';
+    return t;
+  })();
+  var poolMat = new T.MeshBasicMaterial({
+    map: poolTex, transparent: true, depthWrite: false, opacity: .95,
+    blending: T.AdditiveBlending, side: T.DoubleSide,
+  });
+  var POOL = new T.CircleGeometry(1, 20);
+  if (POOL.rotateX) POOL.rotateX(-Math.PI / 2);
+  function pool(x, z, r) {
+    put('lampPool', POOL, poolMat, x, groundAt(x, z) + .035, z, r, 1, r, 0, null);
+  }
+  [[-556, 8.5], [-598, -8.5], [-640, 8.5], [-682, -8.5], [-724, 8.5], [-766, -8.5], [-806, 6],
+   [-742, 58], [-698, -46], [-546, 13], [-350, 12]].forEach(function (p) { pool(p[0], p[1], 3.9); });
+
+  /* --- a sign at the foot of the climb and one at the top --- */
+  var signTex = (function () {
+    var c = document.createElement('canvas');
+    c.width = 512; c.height = 128;
+    var d = c.getContext('2d');
+    d.fillStyle = '#3b2716'; d.fillRect(0, 0, 512, 128);
+    d.strokeStyle = '#c9b184'; d.lineWidth = 7; d.strokeRect(9, 9, 494, 110);
+    d.fillStyle = '#f4e9cd';
+    d.font = '700 62px Georgia, "Times New Roman", serif';
+    d.textAlign = 'center'; d.textBaseline = 'middle';
+    d.fillText('FANTANELE', 256, 66, 430);
+    var t = new T.CanvasTexture(c);
+    t.colorSpace = 'srgb';
+    t.anisotropy = 8;
+    return t;
+  })();
+  var signMat = mat({ map: signTex, roughness: .92, metalness: 0 });
+  function sign(x, z, yaw, w) {
+    var y = groundAt(x, z);
+    var cx = Math.cos(yaw), sx = Math.sin(yaw);
+    [-1, 1].forEach(function (k) {
+      var off = k * w * .42;
+      put('post', BOX, M.wood, x + off * cx, y + 1.5, z - off * sx, .2, 3, .2, yaw, null);
+    });
+    put('sign', BOX, signMat, x, y + 2.55, z, w, 1.25, .16, yaw, null);
+    put('signRoof', BOX, M.dark, x, y + 3.26, z, w + .34, .14, .52, yaw, null);
+  }
+  sign(-347, 11.5, Math.PI / 2, 6.4);      // at the foot of the climb, facing town
+  sign(-541, 11.5, Math.PI / 2, 4.8);      // where the climb reaches the high street
 
   /* --- build the instanced meshes --- */
   var drawCalls = 0;
@@ -6493,7 +6667,8 @@ ${wn.info.render.calls} calls  ${(wn.info.render.triangles/1e3).toFixed(0)}k tri
     }
     im.instanceMatrix.needsUpdate = true;
     if (im.instanceColor) im.instanceColor.needsUpdate = true;
-    im.castShadow = true; im.receiveShadow = true;
+    im.castShadow = !(p.mat && p.mat.transparent);
+    im.receiveShadow = true;
     im.frustumCulled = false;
     scene.add(im);
     drawCalls++;
@@ -6506,7 +6681,7 @@ ${wn.info.render.calls} calls  ${(wn.info.render.triangles/1e3).toFixed(0)}k tri
     var spots = [];
     for (var a = 0; a < 46; a++) {
       var ang = (a / 46) * Math.PI * 2 + .21;
-      var rr = .52 + ((a * 37) % 11) / 26;
+      var rr = .72 + ((a * 37) % 11) / 34;      // outside the plateau, on the flanks
       var tx = SX + Math.cos(ang) * RX * rr, tz = SZ + Math.sin(ang) * RZ * rr;
       /* keep clear of the lanes */
       var near = false;
@@ -6518,6 +6693,10 @@ ${wn.info.render.calls} calls  ${(wn.info.render.triangles/1e3).toFixed(0)}k tri
           if (Math.hypot(tx - (p1[0] + vx * t), tz - (p1[1] + vz * t)) < 9) near = true;
         }
       });
+      /* and clear of the houses and their yards */
+      for (var hi = 0; hi < houses.length; hi++) {
+        if (Math.hypot(tx - houses[hi].x, tz - houses[hi].z) < 14) near = true;
+      }
       if (!near) spots.push([tx, tz, 6 + (a % 5) * 1.4]);
     }
     try { world.plantTrees(spots, { seed: 7331, groundHeight: groundAt, lodDistance: 220 }); } catch (err) {}
@@ -6583,7 +6762,7 @@ ${wn.info.render.calls} calls  ${(wn.info.render.triangles/1e3).toFixed(0)}k tri
 
   window.__gcaVillage = {
     sceneRef: scene, mats: M, groundMesh: ground,
-    centre: { x: SX, z: SZ }, radius: RX, radiusZ: RZ, height: gcaVHeight,
+    centre: { x: SX, z: SZ }, radius: RX, radiusZ: RZ, rise: RISE, flat: FLAT, height: gcaVHeight,
     ground: groundAt, houses: houses, roads: { high: HIGH, north: LANE_N, south: LANE_S, ramp: RAMP },
     patch: { X0: X0, X1: X1, Z0: Z0, Z1: Z1 }, peak: gcaVHeight(SX, SZ), drawCalls: drawCalls
   };

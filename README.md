@@ -34,10 +34,13 @@ python3 -m http.server 8080
 - Traffic and a living crowd: every pedestrian has their own stride and posture, and people walk dogs, jog, shoot hoops, smoke, fold their arms, check their phones or stop to chat in pairs. They duck when shots land near them, glance at the noise, and scatter when things turn ugly.
 
 ### The hilltop village
-- **A village on a hill west of town.** The grassland west of the city rises 30 m into a broad, flat-topped hill, and the land fades back into the city ground over the last 30 m of its edges, so you can walk off the top and down into town without a seam in the floor.
+- **A village on a hill west of town.** The grassland west of the city rises 34 m into a broad, flat-topped hill a little over half a kilometre across, and the land fades back into the city ground over the last 30 m of its edges, so you can walk off the top and down into town without a seam in the floor.
 - **A way up from the city**: the climb leaves a city street at the foot of the hill and switchbacks up the flank — tarmac at the bottom, then gravel, then a mud track — to the high street on the plateau.
-- **19 houses, no two alike**: stone footings, plaster walls in seven colours, tiled gable roofs with ridge caps and chimneys, doors with steps and lintels, shuttered windows, timber framing, porches, lean-to sheds and a barn. Each one sits level on its own footing, set back behind post-and-rail fences in a yard.
-- Village lanes of mud with cart ruts and trampled grass verges, wells, hay bales and trees down the flanks, and the whole village is drawn with instanced parts, so all of it costs a handful of draw calls.
+- **37 houses, no two alike**: stone footings, plaster walls in seven colours, tiled gable roofs with ridge caps and chimneys, doors with steps and lintels, shuttered windows, timber framing, porches, lean-to sheds and a barn. They line both sides of the high street, a back row looks down over it and a few more sit out on the lanes. Each one sits level on its own footing, set back behind post-and-rail fences in a yard — and the walls and fences are solid, so you walk around them, not through them.
+- Village lanes of mud with cart ruts, stones and trampled grass verges, wells, hay bales and trees down the flanks. The ground and the roads are drawn at a finer grain than they were, so the mud and gravel hold up when you walk up close to them.
+- **Lit after dark**: iron lanterns on posts along the high street, the lanes and the foot of the climb, each with a warm head that blooms, a pool of light on the ground beneath it and a real point light in the middle of the street, plus a lantern beside every door. At night the village reads as a lit street instead of a black hole.
+- **FANTANELE** on a wooden sign at the foot of the climb facing town, with a second board where the climb reaches the high street.
+- The whole village is drawn with instanced parts, so all of it costs a handful of draw calls.
 - **Marked on the radar**: a green badge with two cottages and a "V" sits over the hilltop and slides round to the rim of the dial when the village is out of range.
 - **Village life**: the lanes are added to the pedestrian graph, so villagers stroll the high street and the side lanes instead of the city pavements; a few cars are left parked about the street, and a dozen chickens — one of them a rooster — scratch in the yards, pecking at the ground and bolting out of the way if you charge at them.
 
@@ -145,8 +148,9 @@ anywhere along the patch border, that the plateau is flat enough to build on and
 the worst slope on the way up is a walk rather than a cliff, that the climb
 starts at city level and ends at the village, that each lane is level through
 the village, that every house stands level on the flat and none of them overlap,
-that the houses are individual rather than one repeated block, and that the
-village stays cheap to draw.
+that the houses are individual rather than one repeated block, that every house
+and yard has a collider so neither can be walked through, and that the village
+stays cheap to draw.
 The village-life suite covers the villagers, the parked cars and the chickens:
 that the walkways join the two lanes and the climb to the high street and the
 climb to the city graph, that every walkway node has a neighbour and links both
