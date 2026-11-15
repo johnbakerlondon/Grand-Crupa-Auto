@@ -39,6 +39,7 @@ python3 -m http.server 8080
 - **19 houses, no two alike**: stone footings, plaster walls in seven colours, tiled gable roofs with ridge caps and chimneys, doors with steps and lintels, shuttered windows, timber framing, porches, lean-to sheds and a barn. Each one sits level on its own footing, set back behind post-and-rail fences in a yard.
 - Village lanes of mud with cart ruts and trampled grass verges, wells, hay bales and trees down the flanks, and the whole village is drawn with instanced parts, so all of it costs a handful of draw calls.
 - **Marked on the radar**: a green badge with two cottages and a "V" sits over the hilltop and slides round to the rim of the dial when the village is out of range.
+- **Village life**: the lanes are added to the pedestrian graph, so villagers stroll the high street and the side lanes instead of the city pavements; a few cars are left parked about the street, and a dozen chickens — one of them a rooster — scratch in the yards, pecking at the ground and bolting out of the way if you charge at them.
 
 ### Driving
 - Cars, vans, police cruisers, a Humvee and a drivable tank.
@@ -119,7 +120,7 @@ On phones and tablets a left-side thumbstick handles movement, dragging the righ
 
 ## Tests
 
-Six headless regression suites pull the relevant functions straight out of the
+Seven headless regression suites pull the relevant functions straight out of the
 game file and run them against stub rigs. No dependencies, no browser:
 
 ```bash
@@ -129,6 +130,7 @@ node tests/bird-check.mjs
 node tests/rain-check.mjs
 node tests/wet-check.mjs
 node tests/village-check.mjs
+node tests/village-life-check.mjs
 ```
 
 The pedestrian suite covers the head pivot clamp, gait and idle variation,
@@ -145,6 +147,14 @@ starts at city level and ends at the village, that each lane is level through
 the village, that every house stands level on the flat and none of them overlap,
 that the houses are individual rather than one repeated block, and that the
 village stays cheap to draw.
+The village-life suite covers the villagers, the parked cars and the chickens:
+that the walkways join the two lanes and the climb to the high street and the
+climb to the city graph, that every walkway node has a neighbour and links both
+ways, that nobody moves to the village while you are still in town but seven
+settle once you are up there and set off walking on the ground, that the parked
+cars sit on the hilltop, and that the chickens peck, stroll, stay in their yards
+and follow the ground, that a chicken bolts and runs away if you charge at it,
+and that it calms down and stays on the hill afterwards.
 
 ## Credits
 

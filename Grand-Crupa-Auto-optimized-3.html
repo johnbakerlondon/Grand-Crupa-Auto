@@ -6589,6 +6589,367 @@ ${wn.info.render.calls} calls  ${(wn.info.render.triangles/1e3).toFixed(0)}k tri
   };
 })(On, ae);
 
+;/* ---- village life: villagers strolling the lanes, parked cars in the street,
+       and chickens scratching about the yards ---- */
+(function () {
+  'use strict';
+
+  var booted = false, tries = 0;
+
+  /* ------------------------------------------------------------------ *
+   * a wander step for one chicken: peck, stroll, turn, and bolt if you
+   * come at it. Kept separate from the meshes so it can be tested.
+   * ------------------------------------------------------------------ */
+  function angDelta(want, have) {
+    var d = want - have;
+    while (d > Math.PI) d -= Math.PI * 2;
+    while (d < -Math.PI) d += Math.PI * 2;
+    return d;
+  }
+  function stepChicken(c, dt, ctx) {
+    if (dt > 0.05) dt = 0.05;
+    if (dt <= 0) return c;
+    var rnd = (ctx && ctx.rand) || Math.random;
+    c.t -= dt;
+
+    if (ctx && ctx.player) {
+      var px = c.x - ctx.player.x, pz = c.z - ctx.player.z;
+      var pd = Math.hypot(px, pz);
+      if (pd < 4.5 && (ctx.player.speed || 0) > 1.1) {
+        c.state = 'flee';
+        c.t = Math.max(c.t, 1.1);
+        c.h = Math.atan2(px, pz);
+      } else if (c.state === 'flee' && pd > 8) {
+        c.state = 'stand'; c.t = 1 + rnd(); c.peck = 0;
+      }
+    }
+
+    if (c.t <= 0) {
+      var r = rnd();
+      if (c.state === 'flee') { c.state = 'stand'; c.t = .8 + rnd() * 1.2; }
+      else if (r < .44) { c.state = 'peck'; c.t = .9 + rnd() * 1.7; }
+      else if (r < .82) {
+        c.state = 'walk'; c.t = .9 + rnd() * 1.4;
+        c.tx = c.home.x + (rnd() * 2 - 1) * c.home.r;
+        c.tz = c.home.z + (rnd() * 2 - 1) * c.home.r;
+      } else { c.state = 'stand'; c.t = .7 + rnd(); }
+    }
+
+    var spd = c.state === 'flee' ? c.fleeSpeed : c.state === 'walk' ? c.walkSpeed : 0;
+    if (spd > 0) {
+      if (c.state === 'walk' && c.tx != null) {
+        c.h += angDelta(Math.atan2(c.tx - c.x, c.tz - c.z), c.h) * Math.min(1, dt * 2.6);
+      }
+      c.x += Math.sin(c.h) * spd * dt;
+      c.z += Math.cos(c.h) * spd * dt;
+    }
+
+    if (c.state !== 'flee') {                       // scratch about the yard
+      var hx = c.x - c.home.x, hz = c.z - c.home.z, hd = Math.hypot(hx, hz);
+      if (hd > c.home.r) {
+        c.x = c.home.x + (hx / hd) * c.home.r;
+        c.z = c.home.z + (hz / hd) * c.home.r;
+        if (c.state === 'walk') { c.state = 'stand'; c.t = .5 + rnd() * .8; }
+      }
+    }
+
+    c.anim += dt * (c.state === 'flee' ? 2.2 : 1);
+    if (c.state === 'peck') c.peck = Math.min(1, c.peck + dt * 6);
+    else c.peck = Math.max(0, c.peck - dt * 5);
+    c.bob = c.state === 'walk' || c.state === 'flee' ? Math.sin(c.anim * 9) * .02 : 0;
+    if (ctx && ctx.ground) c.y = ctx.ground(c.x, c.z);
+    return c;
+  }
+
+  /* ------------------------------------------------------------------ *
+   * build
+   * ------------------------------------------------------------------ */
+  function build(g, V, T) {
+    if (booted) return;
+    var world = g.world, peds = g.peds, veh = g.vehicles;
+    var scene = (world && world.scene) || g.scene;
+    var ground = V.ground, houses = V.houses, roads = V.roads;
+    var CX = V.centre.x, CZ = V.centre.z;
+    var graph = peds && peds.graph;
+    if (!graph || !graph.nodes || !graph.adj) return;
+    booted = true;
+
+    var nodes = graph.nodes, adj = graph.adj;
+    var firstNew = nodes.length;
+
+    function push(x, z) {
+      nodes.push({ x: x, z: z });
+      adj.push([]);
+      return nodes.length - 1;
+    }
+    function link(a, b) {
+      if (a < 0 || b < 0 || a === b) return;
+      adj[a].push({ to: b, cross: null });
+      adj[b].push({ to: a, cross: null });
+    }
+    /* a walkway offset to one side of the lane, a node every ~7 m */
+    function sample(pts, side) {
+      var out = [];
+      for (var i = 0; i < pts.length - 1; i++) {
+        var ax = pts[i][0], az = pts[i][1], bx = pts[i + 1][0], bz = pts[i + 1][1];
+        var dx = bx - ax, dz = bz - az, len = Math.hypot(dx, dz) || 1;
+        var nx = -dz / len * side, nz = dx / len * side;
+        var steps = Math.max(1, Math.round(len / 7));
+        for (var s = 0; s < steps; s++) {
+          var t = s / steps;
+          out.push([ax + dx * t + nx, az + dz * t + nz]);
+        }
+      }
+      var lx = pts[pts.length - 1], px = pts[pts.length - 2];
+      var ex = lx[0] - px[0], ez = lx[1] - px[1], el = Math.hypot(ex, ez) || 1;
+      out.push([lx[0] - ez / el * side, lx[1] + ex / el * side]);
+      return out;
+    }
+    function chain(points) {
+      var ids = [], prev = -1;
+      for (var i = 0; i < points.length; i++) {
+        var id = push(points[i][0], points[i][1]);
+        if (prev >= 0) link(prev, id);
+        prev = id; ids.push(id);
+      }
+      return ids;
+    }
+    function nearestOf(ids, x, z) {
+      var best = -1, bd = 1e9;
+      for (var i = 0; i < ids.length; i++) {
+        var n = nodes[ids[i]];
+        var d = (n.x - x) * (n.x - x) + (n.z - z) * (n.z - z);
+        if (d < bd) { bd = d; best = ids[i]; }
+      }
+      return best;
+    }
+    function nearestOld(x, z) {
+      var best = 0, bd = 1e9;
+      for (var i = 0; i < firstNew; i++) {
+        var d = (nodes[i].x - x) * (nodes[i].x - x) + (nodes[i].z - z) * (nodes[i].z - z);
+        if (d < bd) { bd = d; best = i; }
+      }
+      return best;
+    }
+
+    var high = chain(sample(roads.high, 4.2));
+    var north = chain(sample(roads.north, 3.1));
+    var south = chain(sample(roads.south, -3.1));
+    var climb = chain(sample(roads.ramp, 0));
+    /* the lanes join the high street, and the climb joins it to the city */
+    link(north[0], nearestOf(high, roads.north[0][0], roads.north[0][1]));
+    link(south[0], nearestOf(high, roads.south[0][0], roads.south[0][1]));
+    link(climb[climb.length - 1], nearestOf(high, roads.ramp[roads.ramp.length - 1][0], roads.ramp[roads.ramp.length - 1][1]));
+    link(climb[0], nearestOld(roads.ramp[0][0], roads.ramp[0][1]));
+
+    var villageNodes = high.concat(north, south, climb.slice(Math.floor(climb.length / 2)));
+
+    /* ---------------- villagers ---------------- */
+    var WANTED = 7;
+    var villagers = [];
+    function local(x, z, yaw, lx, lz) {
+      var c = Math.cos(yaw), s = Math.sin(yaw);
+      return { x: x + lx * c + lz * s, z: z - lx * s + lz * c };
+    }
+    function settle(ped) {
+      var id = villageNodes[(Math.random() * villageNodes.length) | 0];
+      if (id == null) return;
+      var n = nodes[id], list = adj[id];
+      var next = list.length ? list[(Math.random() * list.length) | 0].to : id;
+      ped.pos.set(n.x, ground(n.x, n.z), n.z);
+      ped.from = id; ped.to = next;
+      ped.state = 'walk';
+      ped.active = true; ped.dead = false; ped.hidden = false;
+      ped.group.visible = true;
+      ped.vx = ped.vz = ped.kx = ped.kz = 0;
+      ped.speed = 0;
+      ped.ox = -.5 + Math.random(); ped.oz = -.5 + Math.random();
+      ped.crossing = false; ped.waitAxis = null;
+      ped.alert = false; ped.fleeT = 0; ped.fightT = 0;
+      ped.downT = 0; ped.stun = 0; ped.downK = 0;
+      if (typeof peds._resetPose === 'function') peds._resetPose(ped);
+      ped.yaw = Math.atan2(nodes[next].x - n.x, nodes[next].z - n.z);
+      if (villagers.indexOf(ped) < 0) villagers.push(ped);
+    }
+    var topUp = 0;
+    function keepVillagePopulated() {
+      var now = performance.now();
+      if (now - topUp < 1500) return;
+      topUp = now;
+      if (g.state !== 'playing') return;
+      var pl = g.player && g.player.pos;
+      if (!pl) return;
+      if (Math.hypot(pl.x - CX, pl.z - CZ) > 300) return;      // only when you are up there
+      /* prune in place: the array is the one the debug handle points at */
+      for (var v = villagers.length - 1; v >= 0; v--) {
+        var q = villagers[v];
+        if (!q || !q.active || q.dead || q.type !== 'civ' ||
+            Math.hypot(q.pos.x - CX, q.pos.z - CZ) >= 260) villagers.splice(v, 1);
+      }
+      if (villagers.length >= WANTED) return;
+      var donor = null, far = -1;
+      for (var i = 0; i < peds.list.length; i++) {
+        var p = peds.list[i];
+        if (!p || p.type !== 'civ' || villagers.indexOf(p) >= 0) continue;
+        if (p.state === 'down' || p.state === 'stagger' || p.state === 'flee' || p.state === 'fight') continue;
+        if (p.dead) continue;
+        var d = Math.hypot(p.pos.x - pl.x, p.pos.z - pl.z);
+        if (d > far) { far = d; donor = p; }                 // the least missed one
+      }
+      if (donor) settle(donor);
+    }
+    setInterval(keepVillagePopulated, 700);
+
+    /* ---------------- cars left about the village ---------------- */
+    var cars = [];
+    function park(kind, color, x, z, yaw) {
+      try {
+        var c = veh.add(kind, color, x, z, yaw, 'parked');
+        if (c) { c.x = x; c.z = z; c.yaw = yaw; cars.push(c); }
+      } catch (err) { }
+    }
+    var mid = roads.high[Math.floor(roads.high.length / 2)] || [-660, 0];
+    park('van', 0x7b6a52, mid[0] - 46, 4.6, Math.PI / 2);
+    park('sedan', 0x46564a, mid[0] + 22, -4.7, -Math.PI / 2);
+    park('touran', 0x8d3f33, mid[0] + 62, 4.4, Math.PI / 2);
+
+    /* ---------------- chickens ---------------- */
+    var BOX = new T.BoxGeometry(1, 1, 1);
+    var Q = new T.Quaternion(), YUP = new T.Vector3(0, 1, 0), P = new T.Vector3(), S = new T.Vector3();
+    var bodyMat = new T.MeshStandardMaterial({ color: 0xffffff, roughness: .82, metalness: 0 });
+    var combMat = new T.MeshStandardMaterial({ color: 0xc93a2b, roughness: .7 });
+    var beakMat = new T.MeshStandardMaterial({ color: 0xe2a03c, roughness: .7 });
+    var legMat = new T.MeshStandardMaterial({ color: 0xd8a53e, roughness: .7 });
+
+    var flocks = [];
+    var picks = [0.34, 0.62, 0.86].map(function (f) {
+      return houses[Math.max(0, Math.min(houses.length - 1, Math.round(f * (houses.length - 1))))];
+    });
+    var bodies = [0xf3f0e5, 0x9a6a3f, 0x3a332d, 0xe6d9be, 0xb1793f, 0xf3f0e5];
+    for (var fi = 0; fi < picks.length; fi++) {
+      var h = picks[fi];
+      if (!h) continue;
+      var front = local(h.x, h.z, h.yaw || 0, 0, h.d / 2 + 4.6);
+      for (var ci = 0; ci < 4; ci++) {
+        var a = (ci / 4) * Math.PI * 2 + fi;
+        flocks.push({
+          x: front.x + Math.cos(a) * 2.2, z: front.z + Math.sin(a) * 2.2,
+          y: ground(front.x, front.z),
+          h: Math.random() * Math.PI * 2,
+          state: 'stand', t: .4 + Math.random(), anim: Math.random() * 6,
+          peck: 0, bob: 0, tx: null, tz: null,
+          walkSpeed: .7 + Math.random() * .25, fleeSpeed: 3.1 + Math.random() * .7,
+          home: { x: front.x, z: front.z, r: 3.1 + (ci % 2) * .7 },
+          scale: (fi === 0 && ci === 0 ? 1.3 : .92 + Math.random() * .22),   // one rooster
+          colour: bodies[(fi * 4 + ci) % bodies.length],
+        });
+      }
+    }
+    flocks.forEach(function (c) { c.y = ground(c.x, c.z); });
+
+    function inst(geo, mat, count, shadow) {
+      var m = new T.InstancedMesh(geo, mat, count);
+      m.castShadow = !!shadow;
+      m.receiveShadow = true;
+      m.frustumCulled = false;
+      m.instanceMatrix.setUsage ? m.instanceMatrix.setUsage(35048) : 0;   // DynamicDrawUsage
+      scene.add(m);
+      return m;
+    }
+    var N = flocks.length;
+    var parts = {
+      body: inst(BOX, bodyMat, N, true),
+      head: inst(BOX, bodyMat, N, true),
+      tail: inst(BOX, bodyMat, N, true),
+      comb: inst(BOX, combMat, N, false),
+      beak: inst(BOX, beakMat, N, false),
+      legs: inst(BOX, legMat, N * 2, false),
+    };
+    var colour = new T.Color();
+    for (var k = 0; k < N; k++) {
+      colour.set(flocks[k].colour);
+      parts.body.setColorAt(k, colour);
+      parts.head.setColorAt(k, colour);
+      parts.tail.setColorAt(k, colour);
+    }
+    ['body', 'head', 'tail'].forEach(function (n) { if (parts[n].instanceColor) parts[n].instanceColor.needsUpdate = true; });
+
+    function put(mesh, i, x, y, z, sx, sy, sz, yaw) {
+      Q.setFromAxisAngle(YUP, yaw);
+      P.set(x, y, z); S.set(sx, sy, sz);
+      var m = new T.Matrix4().compose(P, Q, S);
+      mesh.setMatrixAt(i, m);
+    }
+
+    var last = 0;
+    function frame(now) {
+      requestAnimationFrame(frame);
+      var dt = last ? Math.min(.05, (now - last) / 1000) : 0;
+      last = now;
+      if (!dt) return;
+      var pl = g.player && g.player.pos;
+      var ctx = { ground: ground, player: pl ? { x: pl.x, z: pl.z, speed: g.player.speed || 0 } : null };
+      for (var i = 0; i < N; i++) {
+        var c = flocks[i];
+        stepChicken(c, dt, ctx);
+        var s = c.scale, y = c.y, dip = c.peck * .17 * s;
+        var hb = c.state === 'flee' ? .16 : 0;             // wings up a touch when bolting
+        put(parts.body, i, c.x, y + .31 * s + c.bob, c.z, .36 * s, .30 * s, .48 * s, c.h);
+        put(parts.head, i,
+          c.x + Math.sin(c.h) * (.21 * s - dip * .5), y + (.55 - dip) * s + c.bob, c.z + Math.cos(c.h) * (.21 * s - dip * .5),
+          .19 * s, .21 * s, .19 * s, c.h);
+        put(parts.tail, i, c.x - Math.sin(c.h) * (.25 * s), y + (.45 + hb) * s, c.z - Math.cos(c.h) * (.25 * s),
+          .16 * s, .24 * s, .12 * s, c.h);
+        put(parts.comb, i, c.x + Math.sin(c.h) * .2 * s, y + (.66 - dip) * s, c.z + Math.cos(c.h) * .2 * s,
+          .08 * s, .1 * s, .15 * s, c.h);
+        put(parts.beak, i, c.x + Math.sin(c.h) * (.32 * s), y + (.53 - dip) * s, c.z + Math.cos(c.h) * (.32 * s),
+          .07 * s, .06 * s, .12 * s, c.h);
+        var lx = Math.cos(c.h), lz = -Math.sin(c.h);
+        put(parts.legs, i * 2, c.x + lx * .07 * s, y + .08 * s, c.z + lz * .07 * s, .035 * s, .17 * s, .035 * s, c.h);
+        put(parts.legs, i * 2 + 1, c.x - lx * .07 * s, y + .08 * s, c.z - lz * .07 * s, .035 * s, .17 * s, .035 * s, c.h);
+      }
+      for (var key in parts) if (parts[key].instanceMatrix) parts[key].instanceMatrix.needsUpdate = true;
+    }
+    requestAnimationFrame(frame);
+
+    /* a little chicken feed scattered where they scratch */
+    try {
+      var feed = new T.InstancedMesh(new T.BoxGeometry(.07, .03, .07),
+        new T.MeshStandardMaterial({ color: 0xc9a86a, roughness: 1 }), flocks.length * 4);
+      feed.frustumCulled = false;
+      for (var q2 = 0; q2 < flocks.length * 4; q2++) {
+        var c2 = flocks[q2 % flocks.length];
+        var ang = Math.random() * 6.3, rr = Math.random() * c2.home.r;
+        put(feed, q2, c2.home.x + Math.cos(ang) * rr, ground(c2.home.x + Math.cos(ang) * rr, c2.home.z + Math.sin(ang) * rr) + .015,
+          c2.home.z + Math.sin(ang) * rr, 1, 1, 1, Math.random() * 3);
+      }
+      feed.instanceMatrix.needsUpdate = true;
+      scene.add(feed);
+    } catch (err) { }
+
+    /* fill the handle in place, so anything holding it sees the village */
+    var life = window.__gcaVillageLife || (window.__gcaVillageLife = {});
+    life.villagers = villagers;
+    life.cars = cars;
+    life.chickens = flocks;
+    life.nodes = { high: high, north: north, south: south, climb: climb };
+    life.added = nodes.length - firstNew;
+    life.topUp = keepVillagePopulated;
+  }
+
+  function boot() {
+    var g = window.__gca, V = window.__gcaVillage, T = window.__GCA_T;
+    if (!g || !V || !T || !g.peds || !g.vehicles || !g.world) {
+      if (tries++ < 900) setTimeout(boot, 250);
+      return;
+    }
+    try { build(g, V, T); } catch (err) { console.warn('[village-life]', err); }
+  }
+  window.__gcaVillageLife = { boot: boot, stepChicken: stepChicken };
+  setTimeout(boot, 600);
+})();
+
+
 (async function(){if(wu(.8),re.add("sports",9120548,25.1,12,0,"parked"),re.add("taxi",14857006,25.1,-16,0,"parked"),er.spawnCars(re),re.spawnParked(64),re.spawnTraffic(10),re.spawnPatrol(),Iu(!1),cv){_t("gate-btn").textContent="LOADING MODEL";try{let e=await Fe.loadModel(cv,n=>n.total&&wu(.8+.2*n.loaded/n.total));console.info("Stephen model loaded",e)}catch(e){console.warn("Stephen model failed to load, using placeholder",e)}}wu(1);let t=_t("gate-btn");t.disabled=!1,t.textContent="TAP TO START",t.classList.add("ready"),t.addEventListener("click",async()=>{t.disabled=!0;try{await Et.init()}catch(e){console.warn(e)}try{Nv()}catch(e){console.warn(e)}try{screen.orientation?.lock?.("landscape").catch(()=>{})}catch{}_t("gate").classList.add("fade"),setTimeout(()=>_t("gate").classList.add("hidden"),650),Cu.getItem(gx)?t0():Fv()}),PA(),_x(),mx(),_t("fps").classList.toggle("hidden",!te.fps),_t("intro-skip").addEventListener("click",()=>{ge==="video"&&_i>.4&&Au()}),_t("intro-video-wrap").addEventListener("pointerdown",e=>{ge==="video"&&_i>.4&&e.target.tagName!=="BUTTON"&&Au()}),addEventListener("keydown",e=>{ge==="video"&&_i>.4&&e.code!=="Escape"&&Au()}),requestAnimationFrame(e=>{hx=e,Kp=e,Bv(e)}),Wp&&(_t("gate").classList.add("hidden"),Et.init().catch(()=>{}),Wp==="menu"?Ru():Wp==="play"?(Ru(),xx()):Wp==="intro"&&t0())})();window.render_game_to_text=()=>JSON.stringify({note:"x right, z toward camera-at-spawn (south), y up. facing=0 means looking +z",state:ge,t:+_i.toFixed(2),player:{x:+R.pos.x.toFixed(2),y:+R.pos.y.toFixed(2),z:+R.pos.z.toFixed(2),vx:+R.vx.toFixed(2),vz:+R.vz.toFixed(2),vy:+R.vy.toFixed(2),facing:+R.facing.toFixed(2),speed:+R.speed.toFixed(2),grounded:R.grounded,crouching:R.crouching,sprinting:R.sprinting,punching:Fe.punching},camera:{yaw:+jt.yaw.toFixed(2),pitch:+jt.pitch.toFixed(2),x:+qe.position.x.toFixed(2),y:+qe.position.y.toFixed(2),z:+qe.position.z.toFixed(2)},hp:+R.hp.toFixed(0),money:R.money,wanted:ue.level,dead:R.dead,world:{blocks:121,base:{x0:Xe.x0,x1:Xe.x1,z0:Xe.z0,z1:Xe.z1},landmarks:gv.places.map(s=>s.name)},weather:{label:fs.label,raining:fs.raining,intensity:+fs.intensity.toFixed(2),remaining:+fs.remaining.toFixed(1),wetness:+fs.wetness.toFixed(2)},calendar:{day:un.calendarDay,time:un.label},missions:Ii.quests.map(s=>({id:s.id,status:s.status,count:s.count,visited:s.visited,attemptDay:s.attemptDay})),target:Ii.target(),apartments:Ir,weapons:Object.keys(Ce.owned),soldiers:Mi.list.filter(s=>Math.hypot(s.pos.x-R.pos.x,s.pos.z-R.pos.z)<100).map(s=>({x:+s.pos.x.toFixed(1),y:s.y,z:+s.pos.z.toFixed(1),hp:s.hp,dead:s.dead,faction:s.faction})),vehicle:R.vehicle?{kind:R.vehicle.kind,speed:+R.vehicle.speed.toFixed(1),health:+R.vehicle.health.toFixed(0),x:+R.vehicle.x.toFixed(1),z:+R.vehicle.z.toFixed(1),yaw:+R.vehicle.yaw.toFixed(2)}:null,counts:{vehicles:re.list.length,traffic:re.list.filter(s=>s.state==="traffic").length,police:re.list.filter(s=>s.state==="police").length,peds:Ue.list.filter(s=>s.active&&s.type==="civ").length,cops:Ue.list.filter(s=>s.active&&s.type==="cop").length},nearVehicle:$p&&$p.kind?$p.kind:null,menu:_o.classList.contains("hidden")?null:px,usingModel:Fe.usingModel});window.advanceTime=s=>{let t=Math.max(1,Math.round(s/16.666666666666668));for(let e=0;e<t;e++)Ov(1/60);zv()};window.addEventListener("resize",()=>{Ii.opened&&Ii.tab==="map"&&Ii.drawMap()});window.__gca={audio:Et,blast:MA,shake:t=>{ks=Math.max(ks,t)},adventure:Ii,THREE:{Object3D:Re,Group:Yt,Mesh:J,BoxGeometry:Gt,PlaneGeometry:xe,SphereGeometry:Oe,CylinderGeometry:fe,TorusGeometry:Si,MeshStandardMaterial:kt,MeshBasicMaterial:de,MeshLambertMaterial:Yc,CanvasTexture:gn,DoubleSide:ze,Color:bt,Vector3:P},weather:fs,soldiers:Mi,base:fx,districts:gv,aptOwned:Ir,resetPlayer:Zl,drawRadar:Pv,combat:Ce,giveWeapon:s=>{Ce.giveWeapon(s),Ce.addAmmo(s,999);let t=Ce.owned[s];t&&yi[s].mag&&(t.mag=yi[s].mag),kr()},equip:s=>{Ce.equip(s),kr()},openWheel:()=>kv(),startArmory:Rv,places:er,daynight:un,minigames:Yl,jobs:nr,fare:hn,startJob:Cv,usePlace:wv,vehicles:re,peds:Ue,wanted:ue,setWanted:ni,crime:Pr,hurtPlayer:Lr,enterVehicle:Iv,exitVehicle:n0,clock:hu,fx:vi,input:Nt,player:R,cam:jt,stephen:Fe,world:ae,camera:qe,renderer:wn,settings:te,setState:Kn,get state(){return ge},startGame:xx,goMenu:Ru,startIntro:t0,openPause:r0,closePause:yx,apartment:ya};})();
 /*! Bundled license information:
 
