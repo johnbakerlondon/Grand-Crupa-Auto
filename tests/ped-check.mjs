@@ -34,7 +34,8 @@ function extractFn(src, name) {
 const FN = [
   '_pedSeed', '_pedGait', '_pedIdle', '_pedLook', '_pedDuck', '_pedSpot', '_pedFleePose',
   '_pedHeadClamp', '_gcaHeadGeo', '_gcaHeadNew', '_gcaHeadKids',
-  '_gcaProp', '_gcaHideProps', '_gcaCourtReset', '_gcaActGuard', '_gcaFindPartner',
+  '_gcaProp', '_gcaHideProps', '_gcaCourtReset', '_gcaFreeBench', '_gcaDropBench',
+  '_gcaActGuard', '_gcaFindPartner',
   '_gcaTryAct', '_gcaAct', '_pedActPose', '_gcaDodge', '_gcaDivePose',
 ];
 
@@ -71,7 +72,7 @@ const api = new Function(
   'window', 'Yt', 'J', 'Oe', 'Gt', 'fe', 'je', 'Ne', 'bn', 'Fn', 'se',
   src + `
   return { _pedSeed, _pedGait, _pedIdle, _pedLook, _pedDuck, _pedSpot, _pedFleePose,
-    _pedHeadClamp, _gcaProp, _gcaHideProps, _gcaCourtReset, _gcaActGuard,
+    _pedHeadClamp, _gcaProp, _gcaHideProps, _gcaCourtReset, _gcaFreeBench, _gcaDropBench, _gcaActGuard,
     _gcaFindPartner, _gcaTryAct, _gcaAct, _pedActPose, _gcaDodge, _gcaDivePose };
   `,
 )(
@@ -237,7 +238,7 @@ check('idle pedestrians pick activities when the player is close', () => {
     if (p.act) seen.add(p.act);
   }
   assert(seen.size >= 3, 'too few activity types: ' + [...seen]);
-  assert([...seen].every(a => ['dog', 'jog', 'ball', 'smoke', 'chat'].includes(a)));
+  assert([...seen].every(a => ['dog', 'jog', 'ball', 'smoke', 'chat', 'sit'].includes(a)));
 });
 check('dead pedestrians never start activities', () => {
   const p = makePed({ dead: true });
