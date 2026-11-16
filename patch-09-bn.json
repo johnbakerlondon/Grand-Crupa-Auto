@@ -1,0 +1,10 @@
+[
+  {
+    "find": "  if(t.act===\"sit\"){\n    var bn=t._gcaBench;\n    if(!bn) t.actT=0;\n    else {\n      var st=t._gcaSeat, dd=Math.hypot(st.x-t.pos.x,st.z-t.pos.z);\n      if(dd>.4&&t.actT>5){ m._move(t,e,st.x,st.z,1.5,st.x,st.z); t.state=\"act\" }\n      else {\n        t.pos.x+=(st.x-t.pos.x)*Math.min(1,e*3); t.pos.z+=(st.z-t.pos.z)*Math.min(1,e*3);\n        var dw=bn.yaw-t.yaw; t.yaw+=Math.atan2(Math.sin(dw),Math.cos(dw))*(1-Math.exp(-4*e));\n        t.group.rotation.y=t.yaw;\n      }\n    }\n  }",
+    "replace": "  if(t.act===\"sit\"){\n    var bench=t._gcaBench;\n    if(!bench) t.actT=0;\n    else {\n      var st=t._gcaSeat, dd=Math.hypot(st.x-t.pos.x,st.z-t.pos.z);\n      if(dd>.4&&t.actT>5){ m._move(t,e,st.x,st.z,1.5,st.x,st.z); t.state=\"act\" }\n      else {\n        t.pos.x+=(st.x-t.pos.x)*Math.min(1,e*3); t.pos.z+=(st.z-t.pos.z)*Math.min(1,e*3);\n        var dw=bench.yaw-t.yaw; t.yaw+=Math.atan2(Math.sin(dw),Math.cos(dw))*(1-Math.exp(-4*e));\n        t.group.rotation.y=t.yaw;\n      }\n    }\n  }"
+  },
+  {
+    "find": "  if(r<.5){ var bn=_gcaFreeBench(t);\n    if(bn){ bn.taken=t; t.act=\"sit\"; t.actT=Ne(30,65); t.state=\"act\"; t._gcaBench=bn;\n      t._gcaSeat={x:bn.x+Math.sin(bn.yaw)*.6,z:bn.z+Math.cos(bn.yaw)*.6};\n      t.yaw=bn.yaw; t.group.rotation.y=t.yaw; return true } }",
+    "replace": "  if(r<.5){ var bench=_gcaFreeBench(t);\n    if(bench){ bench.taken=t; t.act=\"sit\"; t.actT=Ne(30,65); t.state=\"act\"; t._gcaBench=bench;\n      t._gcaSeat={x:bench.x+Math.sin(bench.yaw)*.6,z:bench.z+Math.cos(bench.yaw)*.6};\n      t.yaw=bench.yaw; t.group.rotation.y=t.yaw; return true } }"
+  }
+]

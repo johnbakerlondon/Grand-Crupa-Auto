@@ -5154,10 +5154,10 @@ function _gcaTryAct(m,t){
   if(r<.09){ t.act="dog"; t.actT=Ne(16,30); t._gcaWSpd=t.walkSpd; t.walkSpd=1.3; return false }
   if(r<.16){ t.act="jog"; t.actT=Ne(12,24); t._gcaWSpd=t.walkSpd; t.walkSpd=3.2; return false }
   if(r<.34){ if(_gcaFindPartner(m,t)){ t.act="chat"; t.actT=Ne(9,18); t.state="act"; return true } return false }
-  if(r<.5){ var bn=_gcaFreeBench(t);
-    if(bn){ bn.taken=t; t.act="sit"; t.actT=Ne(30,65); t.state="act"; t._gcaBench=bn;
-      t._gcaSeat={x:bn.x+Math.sin(bn.yaw)*.6,z:bn.z+Math.cos(bn.yaw)*.6};
-      t.yaw=bn.yaw; t.group.rotation.y=t.yaw; return true } }
+  if(r<.5){ var bench=_gcaFreeBench(t);
+    if(bench){ bench.taken=t; t.act="sit"; t.actT=Ne(30,65); t.state="act"; t._gcaBench=bench;
+      t._gcaSeat={x:bench.x+Math.sin(bench.yaw)*.6,z:bench.z+Math.cos(bench.yaw)*.6};
+      t.yaw=bench.yaw; t.group.rotation.y=t.yaw; return true } }
   var C=window.__gcaCourt;
   if(C&&Math.hypot(t.pos.x-C.x,t.pos.z-C.z)<34&&r<.52){
     t.act="ball"; t.actT=Ne(24,44); t.actPh=0; t.state="act"; t._gcaAt=1; t._gcaHo=null; t._gcaSpot=null;
@@ -5176,14 +5176,14 @@ function _gcaAct(m,t,e){
       t.yaw+=bn(t.yaw,want)*(1-Math.exp(-5*e)); t.group.rotation.y=t.yaw }
   }
   if(t.act==="sit"){
-    var bn=t._gcaBench;
-    if(!bn) t.actT=0;
+    var bench=t._gcaBench;
+    if(!bench) t.actT=0;
     else {
       var st=t._gcaSeat, dd=Math.hypot(st.x-t.pos.x,st.z-t.pos.z);
       if(dd>.4&&t.actT>5){ m._move(t,e,st.x,st.z,1.5,st.x,st.z); t.state="act" }
       else {
         t.pos.x+=(st.x-t.pos.x)*Math.min(1,e*3); t.pos.z+=(st.z-t.pos.z)*Math.min(1,e*3);
-        var dw=bn.yaw-t.yaw; t.yaw+=Math.atan2(Math.sin(dw),Math.cos(dw))*(1-Math.exp(-4*e));
+        var dw=bench.yaw-t.yaw; t.yaw+=Math.atan2(Math.sin(dw),Math.cos(dw))*(1-Math.exp(-4*e));
         t.group.rotation.y=t.yaw;
       }
     }
