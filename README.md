@@ -30,7 +30,7 @@ python3 -m http.server 8080
 - A full-size **basketball court** just east of the fountain plaza: painted lines, centre circle, three-point arcs, two hoops with nets and backboards, and benches along the side. Pedestrians wander over, dribble up to a hoop and shoot at the rim.
 - **Pigeons** wheel overhead in loose flocks, banking into their turns and beating their wings, staying around you as you move through the city and keeping to the ground rather than flying into the hills. When things are quiet a flock drops down onto the pavement near you, folds its wings, shuffles about and pecks at the ground, and bursts back into the air when you get too close - from the moment you are within a few steps, or further out if you are running, and they scatter hard if you sprint straight through the middle of them. Fire a gun and the flock blows upward, climbing well above its usual height with wings beating hard before it settles back into its circle.
 - Pedestrians dive aside when a car bears down on them, then pick themselves up and carry on.
-- **Traffic lights** at every junction: a pole, a mast arm over the carriageway and a three-lens head, cycling green, amber, red on a 24-second loop. Cars brake for the stop line when their road is not green, and lean on the horn if you stand in the road while it is.
+- **Traffic lights** at every junction, one mast for each approach: a pole on the corner, a mast arm over that approach's own lane and a three-lens head facing the traffic, cycling green, amber, red on a 24-second loop. Cars brake for the stop line when their road is not green, and lean on the horn if you stand in the road while it is.
 - Traffic and a living crowd: every pedestrian has their own stride and posture, and people walk dogs, jog, shoot hoops, smoke, fold their arms, check their phones or stop to chat in pairs. They duck when shots land near them, glance at the noise, and scatter when things turn ugly.
 
 ### The hilltop village
@@ -92,7 +92,7 @@ python3 -m http.server 8080
 | Punch / fire | `F` |
 | Reload | `R` |
 | Switch weapon | `Q`, or `1`–`8` for a slot |
-| Camera | `V` |
+| Camera | `V` — cycle chase, close, first person, bonnet and front views |
 | Horn (in a car) | `H` |
 | Tank cannon | `G` |
 | Pause | `Esc` / `P` |
