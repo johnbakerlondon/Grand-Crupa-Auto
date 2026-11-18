@@ -30,7 +30,7 @@ python3 -m http.server 8080
 - A full-size **basketball court** just east of the fountain plaza: painted lines, centre circle, three-point arcs, two hoops with nets and backboards, and benches along the side. Pedestrians wander over, dribble up to a hoop and shoot at the rim.
 - **Pigeons** wheel overhead in loose flocks, banking into their turns and beating their wings, staying around you as you move through the city and keeping to the ground rather than flying into the hills. When things are quiet a flock drops down onto the pavement near you, folds its wings, shuffles about and pecks at the ground, and bursts back into the air when you get too close - from the moment you are within a few steps, or further out if you are running, and they scatter hard if you sprint straight through the middle of them. Fire a gun and the flock blows upward, climbing well above its usual height with wings beating hard before it settles back into its circle.
 - Pedestrians dive aside when a car bears down on them, then pick themselves up and carry on.
-- **Traffic lights** at every junction, one mast for each approach: a pole on the corner, a mast arm over that approach's own lane and a three-lens head facing the traffic, cycling green, amber, red on a 24-second loop. Cars brake for the stop line when their road is not green, and lean on the horn if you stand in the road while it is.
+- **Traffic lights** at every junction, one mast for each approach: a pole on the corner, a mast arm over that approach's own lane and a three-lens head facing the traffic, cycling green, amber, red on a 24-second loop. Each corner pole also carries two pedestrian repeaters at shoulder height, one turned to face each of the crossings it serves: they show a red hand whenever cars on that road are moving and the green walker for the whole red, so a walker reads them from the opposite kerb. Pedestrians stop at the kerb and wait while the repeater for the road they mean to cross shows the hand, then step off as soon as it turns to the walker. Cars brake for the stop line when their road is not green, and lean on the horn if you stand in the road while it is.
 - Traffic and a living crowd: every pedestrian has their own stride and posture, and people walk dogs, jog, shoot hoops, smoke, fold their arms, check their phones or stop to chat in pairs. They duck when shots land near them, glance at the noise, and scatter when things turn ugly.
 
 ### The hilltop village
@@ -46,6 +46,7 @@ python3 -m http.server 8080
 
 ### Driving
 - Cars, vans, police cruisers, a Humvee and a drivable tank.
+- **Dad’s Touran** is the one to win: a low, wide race car with a long tapered nose, front splitter, deep side skirts, a diffuser and twin exhausts, a big rear wing on endplates, wide slick tyres, and a cabin low enough that it sits a head under a hatchback. It is still the fastest thing in the city (and spawns anywhere with `T`).
 - Arcade handling with drift, handbrake, engine and tyre audio, horns and a siren. Braking hard or breaking traction leaves black tyre marks on the road with smoke curling off the wheels, and the brake lights glow red whenever a car slows or reverses. Lift off the throttle at speed and the exhaust cracks with a puff of flame, which is loud enough to set the pigeons off too.
 - **Get in and out like GTA V** — Stephen walks to the driver's door, the door swings open, he climbs in and the door shuts behind him, with the whole sequence mirrored when he steps out.
 - Carjacking: pull a driver out of a moving car and take it.
@@ -108,6 +109,7 @@ On phones and tablets a left-side thumbstick handles movement, dragging the righ
 - **WebGL / Three.js** rendering with a low-poly, vertex-coloured art style, a custom clearcoat-style body shader for vehicles and instanced city geometry.
 - **Procedural WebAudio** for all music and effects — the radio stations are generated note by note rather than streamed.
 - **A spatial collision grid** keeps the open world fast, with AABB queries and a vehicle collider-pair pass.
+- **Static instance merging**: the city’s ~1,280 instanced prop batches share only a handful of geometry and material pairs, so they are folded into one InstancedMesh per pair per 192 m tile. Every instance keeps its exact matrix, colour and shadow flags, so the picture is unchanged while the renderer issues noticeably fewer instanced draws and the tiles still cull. Props that move are detected before merging (and given straight back if one ever does), so nothing animated is ever frozen.
 - **Mobile-first UI**: safe-area aware layout, a design system built around a late-dusk Liberty City palette, and an add-to-home-screen friendly shell.
 
 ### Repository contents
