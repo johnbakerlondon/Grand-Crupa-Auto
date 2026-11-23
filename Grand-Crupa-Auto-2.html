@@ -15746,7 +15746,7 @@ console.info("[gca-inst] static instance merge ready");
 (() => {
  'use strict';
  const G=window.__gca,S=G.settings,storeKey='gca.arrival.options.v1';
- const defaults={subtitles:true,textSize:1,safeWanted:false,radioLevel:1,voiceLevel:.75,introVoice:false,introOnce:false,phoneRight:false,phoneSlow:false};
+ const defaults={subtitles:true,textSize:1,safeWanted:false,radioLevel:1,voiceLevel:.75,introVoice:false,introOnce:false,phoneRight:false,phoneSlow:false,sandbox:false};
  const runtimeStore=new Map();
  const read=(k)=>{try{return JSON.parse(localStorage.getItem(k)||'null')??runtimeStore.get(k)??null}catch{return runtimeStore.get(k)??null}};
  const write=(k,v)=>{runtimeStore.set(k,v);try{localStorage.setItem(k,JSON.stringify(v))}catch{}};
@@ -15760,7 +15760,7 @@ console.info("[gca-inst] static instance merge ready");
    Controls:[['invertY','Invert look Y'],['sens','Look sensitivity',.4,2.2,.05],['stick','Joystick size',.7,1.4,.05],['opacity','Touch button opacity',.35,1,.05]],
    Display:[['renderScale','Render scale',.6,1,.05],['shadows','Shadows'],['shadowQ','Shadow quality',['Low','High','Ultra']],['drawDist','Draw distance',.35,1.3,.05],['bloom','Bloom',0,1,.05],['fps','Performance counter'],['frameGen','Experimental frame generation'],['lowEnd','Low-end mode'],['district','Living City details']],
    Audio:[['music','Music',0,1,.05],['sfx','Sound effects',0,1,.05],['cityAmbience','City ambience',0,1,.05],['radioLevel','Radio',0,1,.05],['voiceLevel','Voice',0,1,.05],['introVoice','Spoken cinematic dialogue']],
-   Gameplay:[['hud','HUD and controls'],['rain','Rain showers'],['pop','Pedestrian population',.3,1,.1],['traffic','Traffic density',1,3,.25],['dayMin','Day length (minutes)',4,40,1],['introOnce','Play Arrival once']],
+   Gameplay:[['hud','HUD and controls'],['sandbox','Sandbox mode · no mission paths or messages'],['rain','Rain showers'],['pop','Pedestrian population',.3,1,.1],['traffic','Traffic density',1,3,.25],['dayMin','Day length (minutes)',4,40,1],['introOnce','Play Arrival once']],
    Accessibility:[['subtitles','Subtitles'],['textSize','Text size',1,1.35,.05],['safeWanted','Reduce wanted flashing'],['phoneRight','Phone on right'],['phoneSlow','Slow time with phone open']]
  };
  const sheet=document.createElement('style');sheet.textContent=`
@@ -15797,6 +15797,7 @@ console.info("[gca-inst] static instance merge ready");
  .ap-list h3{font-size:1.12em;margin:0 0 6px}.ap-list p{font-size:.93em}.ap-list .ap-actions{margin:8px 0 0}
  body.arrival-nohud #hud,body.arrival-nohud #story-hud,body.arrival-nohud #city-tools,body.arrival-nohud #mission-tracker,body.arrival-nohud #gca-zone{visibility:hidden}
  body.arrival-safe #stars,body.arrival-safe #stars *{animation:none!important}
+ body.gca-sandbox :is(#mission-tracker,#story-hud){visibility:hidden!important}
  @media(max-width:570px){#arrival-pause header,#arrival-pause footer{padding:9px 10px}#arrival-pause nav{padding-inline:2px}#arrival-pause nav button{padding-inline:5px;letter-spacing:.025em}#arrival-pause footer span:last-child{display:none}}
  @media(max-height:470px) and (orientation:landscape){
    #arrival-pause{padding:10px}
@@ -15819,6 +15820,7 @@ console.info("[gca-inst] static instance merge ready");
    document.documentElement.style.setProperty('--arrival-text',ext.textSize);
    document.body.classList.toggle('arrival-nohud',S.hud===false);
    document.body.classList.toggle('arrival-safe',ext.safeWanted);
+   document.body.classList.toggle('gca-sandbox',S.sandbox===true);
    G.audio.startAmbience();
  }
  function brief(){const Q=G.adventure.quests;return `<h2>Mission Brief</h2><div class="ap-actions">${buttons([['legacy:quests','Open original journal']])}</div><div class="ap-list">${Q.map(q=>`<article><small>${safe(q.status)}</small><h3>${safe(q.name)}</h3><p>${safe(G.adventure.objective(q))}</p></article>`).join('')}</div>`}
@@ -15975,12 +15977,12 @@ console.info("[gca-inst] static instance merge ready");
    else if(meet){const c=profile(meet);target={x:c.x,z:c.z,name:c.name,contact:c.id};}
    else target=null;
  }
- function notify(s){window.__gcaExtras?.toast(s,4200);U.status(s);}
+ function notify(s){if(G.settings.sandbox)return;window.__gcaExtras?.toast(s,4200);U.status(s);}
  const mark=new T.Mesh(new T.RingGeometry(2.2,2.65,32),new T.MeshBasicMaterial({color:0xe8b975,transparent:true,opacity:.8,side:T.DoubleSide,depthWrite:false}));mark.rotation.x=-Math.PI/2;mark.visible=false;W.scene.add(mark);
  const dot=(x,z)=>Math.hypot(Ppos().x-x,Ppos().z-z);
  const checkpointReached=(kind,x,z)=>dot(x,z)<=(kind==='race'?12:8)&&(!['race','rescue'].includes(kind)||!!P.vehicle);
  function update(dt){
-   objective();mark.visible=!!target;
+   objective();mark.visible=!!target&&!G.settings.sandbox;
    if(target)mark.position.set(target.x,W.groundHeight(target.x,target.z)+.15,target.z);
    const m=current();
    if(!m){
@@ -16135,7 +16137,7 @@ console.info("[gca-inst] static instance merge ready");
    const x=clampCross(p.x),z=clampCross(p.z);
    return Math.abs(p.x-x)<Math.abs(p.z-z)?{x,z:clamp(p.z,-edge,edge),axis:'z'}:{x:clamp(p.x,-edge,edge),z,axis:'x'};
  }
- function target(){return waypoint||window.__districtStory?.target||C.target||G.adventure.target();}
+ function target(){if(waypoint)return waypoint;if(G.settings.sandbox)return null;return window.__districtStory?.target||C.target||G.adventure.target();}
  function coreRoute(p,t){
    const a=nearestRoad(p),d=nearestRoad(t);
    if(a.axis===d.axis&&((a.axis==='x'&&a.z===d.z)||(a.axis==='z'&&a.x===d.x)))return[a,d,t];
@@ -17132,7 +17134,7 @@ window.__gcaManuscript={
  const G=window.__gca,T=window.__GCA_T,U=window.__arrivalUI,W=G.world,P=G.player,C=window.__arrivalContacts,F=window.__gcaPhone,M=window.__gcaManuscript;
  const {missions,chapters,cast}=M, scene=W.scene;
  const all=C.list.map(c=>c.id);
- const state={mode:false,index:0,step:0,phase:'off',time:null,seen:[],checkpoint:null,unlocked:['M'],finished:[],wantedTime:0};
+ const state={mode:false,index:0,step:0,phase:'off',time:null,seen:[],checkpoint:null,unlocked:['M'],finished:[],wantedTime:0,suspended:false};
  let last=0,car=null,service=null,guide=null,beat=null,tracking=0,noticeUntil=0,voice=null,held=0,hero=null;
  const now=()=>performance.now(),pos=()=>P.vehicle||P.pos,dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
  const point=(x,z,name)=>({x,z,name}),safe=U.safe;
@@ -17188,7 +17190,7 @@ window.__gcaManuscript={
   state.step=next;state.wantedTime=0;tracking=0;unlinkGuide();
   if(!o())return pass();
   const [type,x,z,,limit]=o();
-  state.time=limit||m().timer||null;
+  state.time=G.settings.sandbox?null:(limit||m().timer||null);
   if(type==='taxi')motor('taxi',point(x,z));
   if(type==='ambulance'){const v=motor('ambulance',point(x,z));if(v)v._ambDone=false;}
   if(type==='drive'&&!P.vehicle)motor('sedan',point(x,z));
@@ -17198,16 +17200,22 @@ window.__gcaManuscript={
  }
  function checkpoint(){const p=pos();return {x:p.x,z:p.z,car:P.vehicle?.kind||null,yaw:P.vehicle?.yaw||0};}
  function toast(kind,title,details,button=''){
+  if(G.settings.sandbox){card.hidden=true;noticeUntil=0;return;}
   card.hidden=false;card.innerHTML=`<small>${safe(kind)}</small><h2>${safe(title)}</h2><p>${safe(details)}</p>${button}`;
   noticeUntil=button?Infinity:now()+4500;
  }
  function start(index){cleanService();unlinkGuide();state.index=index;state.step=0;state.phase='active';window.__arrivalMap.clear();const q=m();if(!q){state.phase='complete';return;}
   state.checkpoint=checkpoint();stage(0,true);F.receive(q.giver,q.brief,index===0||index===5,cast[q.giver][0]);}
- function begin(story){cleanService();unlinkGuide();F.reset();Object.assign(state,{mode:story,index:0,step:0,phase:story?'active':'off',time:null,seen:[],checkpoint:null,unlocked:story?['M']:[...all],finished:[],wantedTime:0});card.hidden=true;if(story){start(0);window.__gcaSave.autosave();}}
- function fail(reason){if(!alive())return;state.phase='failed';unlinkGuide();G.audio.deny?.();toast('Mission failed',m().title,reason,'<button data-retry>Retry checkpoint</button>');}
+ function begin(story){cleanService();unlinkGuide();F.reset();Object.assign(state,{mode:story,index:0,step:0,phase:story?'active':'off',time:null,seen:[],checkpoint:null,unlocked:story?['M']:[...all],finished:[],wantedTime:0,suspended:false});card.hidden=true;if(story){start(0);window.__gcaSave.autosave();}}
+ function fail(reason){
+  if(!alive()||G.settings.sandbox)return;
+  state.phase='failed';state.suspended=false;unlinkGuide();window.__arrivalMap?.clear();G.audio.deny?.();
+  toast('Mission failed',m().title,reason,'<button type="button" data-retry>Retry checkpoint</button><button type="button" data-dismiss>Dismiss · keep playing</button>');
+ }
+ function dismiss(){if(state.phase!=='failed')return;state.suspended=true;card.hidden=true;noticeUntil=0;unlinkGuide();window.__arrivalMap?.clear();G.audio.click?.();}
  function retry(){
   if(state.phase!=='failed'||P.dead||G.state!=='playing')return;
-  const q=state.checkpoint;card.hidden=true;state.phase='active';
+  const q=state.checkpoint;card.hidden=true;state.phase='active';state.suspended=false;
   if(q&&Number.isFinite(q.x)&&Number.isFinite(q.z)){
    if(P.vehicle)G.exitVehicle();
    P.pos.set(q.x,W.groundHeight(q.x,q.z),q.z);P.vx=P.vy=P.vz=0;P.lock=.25;
@@ -17216,7 +17224,7 @@ window.__gcaManuscript={
   }
   stage(state.step,true);
  }
- card.onclick=e=>{if(e.target.closest('[data-retry]'))retry();};
+ card.onclick=e=>{if(e.target.closest('[data-retry]'))retry();else if(e.target.closest('[data-dismiss]'))dismiss();};
  function finishMission(q){
   if(state.finished.includes(state.index))return;
   const n=state.index,next=missions[n+1];state.finished.push(n);
@@ -17260,7 +17268,7 @@ window.__gcaManuscript={
    const ruby=new T.MeshBasicMaterial({color:0xfc6c54});for(const x of [-.63,.63]){const light=new T.Mesh(new T.BoxGeometry(.27,.14,.05),ruby);light.position.set(x,.65,-1.91);root.add(light);}
    a.root=root;a.arm=null;
   }
-  scene.add(a.root);guide={...a,kind,dest,p:from,traveled:0,from};a.root.position.set(from.x,W.groundHeight(from.x,from.z),from.z);
+  if(G.settings.sandbox)a.root.visible=false;scene.add(a.root);guide={...a,kind,dest,p:from,traveled:0,from};a.root.position.set(from.x,W.groundHeight(from.x,from.z),from.z);
  }
  function moveGuide(dt){
   if(!guide)return;
@@ -17270,7 +17278,7 @@ window.__gcaManuscript={
   g.traveled+=k;g.root.position.set(g.p.x,W.groundHeight(g.p.x,g.p.z)+(g.arm?.018*Math.sin(g.traveled*10):0),g.p.z);if(g.arm){g.arm.rotation.x=Math.sin(g.traveled*5)*.3;g.left.rotation.x=-g.arm.rotation.x;}
   // The lead waits at intersections; sustained separation is a mission failure.
   if(far>max+10)tracking+=dt;else tracking=Math.max(0,tracking-dt*2);
-  if(tracking>12)return fail(g.kind==='tail'?'You lost sight of the car.':'You left the witness behind.');
+  if(tracking>12&&!G.settings.sandbox)return fail(g.kind==='tail'?'You lost sight of the car.':'You left the witness behind.');
   return d<1.6&&far<Math.max(13,min+3);
  }
  function speak(label,line){
@@ -17321,11 +17329,12 @@ window.__gcaManuscript={
  addEventListener('keyup',e=>{if(beat&&['Space','Enter','Escape'].includes(e.code)){e.stopImmediatePropagation();e.preventDefault();hold(false);}},true);
  addEventListener('blur',()=>hold(false));
  function step(dt){
-  if(!alive()||!o())return;
-  if(P.dead||P.hp<=0)return fail('Stephen was injured. Retry after returning to the street.');
+  if(!alive()||!o()||state.suspended)return;
+  const quiet=!!G.settings.sandbox;
+  if(P.dead||P.hp<=0){if(!quiet)return fail('Stephen was injured. Retry after returning to the street.');return;}
   const [k,x,z]=o(),dst=target(),p=pos();
-  if(state.time!=null&&(state.time-=dt)<=0)return fail('Time ran out before the objective was reached.');
-  if(P.vehicle&&(P.vehicle.wreck||P.vehicle.exploded))return fail('Your vehicle is no longer drivable.');
+  if(state.time!=null&&(state.time-=dt)<=0){if(!quiet)return fail('Time ran out before the objective was reached.');state.time=null;}
+  if(P.vehicle&&(P.vehicle.wreck||P.vehicle.exploded)){if(!quiet)return fail('Your vehicle is no longer drivable.');return;}
   if((k==='taxi'||k==='ambulance')&&service?.wreck&&!P.vehicle){service=null;motor(k==='taxi'?'taxi':'ambulance',point(x,z));}
   if(k==='wanted'){state.wantedTime+=dt;if(state.wantedTime>=12&&G.wanted.level===0)stage(state.step+1);return;}
   if(k==='escort'||k==='tail'){const hit=moveGuide(dt);if(hit&&alive()&&dist(p,dst)<14&&(k==='escort'?!P.vehicle:!!P.vehicle))stage(state.step+1);return;}
@@ -17340,10 +17349,11 @@ window.__gcaManuscript={
   if(playing)step(G.settings.phoneSlow&&F.open?dt*.78:dt);
   else if(alive()&&o()?.[0]==='shop'&&window.__gcaShops?.kind==='clothing')stage(state.step+1);
   const q=m(),dst=playing&&target(),goal=o(),near=goal&&['talk','shop'].includes(goal[0])&&dst&&dist(pos(),dst)<(goal[0]==='shop'?3.5:9)&&!P.vehicle&&!P.dead;
-  talk.hidden=!near;if(near)talk.textContent=goal[0]==='shop'?'ENTER · E / Crupa Threads':`TALK · E / ${state.step===0?cast[q.giver][0]:'Hearing'}`;
-  marker.visible=!!dst;if(dst)marker.position.set(dst.x,W.groundHeight(dst.x,dst.z)+.115,dst.z);
-  objective.hidden=!dst;if(dst){const txt=`${safe(chapters[q.ch])} / ${safe(q.title)}`,meter=state.time==null?'':` · ${Math.max(0,Math.ceil(state.time))}s`;const html=`<small>${txt}</small>${safe(goal[3])}${meter}`;if(objective.innerHTML!==html)objective.innerHTML=html;}
-  card.hidden=!playing||n>noticeUntil;if(playing&&state.phase==='failed'){card.hidden=false;const b=card.querySelector('button');if(b)b.disabled=P.dead;}
+  const quiet=!!G.settings.sandbox;
+  talk.hidden=!near||quiet;if(near&&!quiet)talk.textContent=goal[0]==='shop'?'ENTER · E / Crupa Threads':`TALK · E / ${state.step===0?cast[q.giver][0]:'Hearing'}`;
+  marker.visible=!!dst&&!quiet;if(dst&&!quiet)marker.position.set(dst.x,W.groundHeight(dst.x,dst.z)+.115,dst.z);
+  objective.hidden=!dst||quiet;if(dst&&!quiet){const txt=`${safe(chapters[q.ch])} / ${safe(q.title)}`,meter=state.time==null?'':` · ${Math.max(0,Math.ceil(state.time))}s`;const html=`<small>${txt}</small>${safe(goal[3])}${meter}`;if(objective.innerHTML!==html)objective.innerHTML=html;}
+  card.hidden=quiet||!playing||n>noticeUntil;if(playing&&state.phase==='failed'&&!state.suspended&&!quiet){card.hidden=false;const b=card.querySelector('button');if(b)b.disabled=P.dead;}
  }
  const prev=U.action;
  U.action=a=>{
@@ -17363,11 +17373,11 @@ window.__gcaManuscript={
   cleanService();unlinkGuide();card.hidden=true;noticeUntil=0;
   if(!d?.mode){Object.assign(state,{mode:false,phase:'off',finished:[],seen:[],unlocked:[...all]});return;}
   const index=normalize(d.index,missions.length-1),q=missions[index],step=normalize(d.step,q.goals.length-1),clean=v=>Array.isArray(v)?[...new Set(v.filter(n=>Number.isInteger(n)&&n>=0&&n<missions.length))]:[];
-  Object.assign(state,{mode:true,index,step,phase:['complete','failed'].includes(d.phase)?d.phase:'active',time:Number.isFinite(d.time)?d.time:null,seen:clean(d.seen),finished:clean(d.finished),unlocked:Array.isArray(d.unlocked)?d.unlocked.filter(id=>all.includes(id)):['M'],checkpoint:d.checkpoint,wantedTime:Number.isFinite(d.wantedTime)?d.wantedTime:0});
-  if(state.phase==='failed')toast('Mission failed',q.title,'Retry the saved checkpoint.','<button data-retry>Retry checkpoint</button>');
+  Object.assign(state,{mode:true,index,step,suspended:!!d.suspended,phase:['complete','failed'].includes(d.phase)?d.phase:'active',time:Number.isFinite(d.time)?d.time:null,seen:clean(d.seen),finished:clean(d.finished),unlocked:Array.isArray(d.unlocked)?d.unlocked.filter(id=>all.includes(id)):['M'],checkpoint:d.checkpoint,wantedTime:Number.isFinite(d.wantedTime)?d.wantedTime:0});
+  if(state.phase==='failed'&&!state.suspended)toast('Mission failed',q.title,'Retry the saved checkpoint.','<button type="button" data-retry>Retry checkpoint</button><button type="button" data-dismiss>Dismiss · keep playing</button>');
   if(state.phase==='active'){const t=state.time,w=state.wantedTime;stage(step,true,true);state.time=t;state.wantedTime=w;}
  }});
- window.__districtStory={begin,missions,chapters,cast,get active(){return state.mode;},get current(){return m()&&state.mode?{index:state.index,step:state.step,phase:state.phase,title:m().title,instruction:o()?.[3]}:null;},get target(){return target();},get guide(){return guide&&{x:guide.p.x,z:guide.p.z};},get cut(){return !!beat;},unlocked:id=>!state.mode||state.unlocked.includes(id),shop(kind){if(kind==='clothing'&&alive()&&o()[0]==='shop')stage(state.step+1);},job(kind,ok){if(alive()&&o()[0]===kind){if(ok)stage(state.step+1);else fail(kind==='taxi'?'The fare was lost.':'The paramedic run was interrupted.');}}};
+ window.__districtStory={begin,missions,chapters,cast,get active(){return state.mode;},get current(){return m()&&state.mode?{index:state.index,step:state.step,phase:state.phase,title:m().title,instruction:o()?.[3]}:null;},get target(){return G.settings.sandbox?null:target();},get guide(){return guide&&{x:guide.p.x,z:guide.p.z};},get cut(){return !!beat;},unlocked:id=>!state.mode||state.unlocked.includes(id),shop(kind){if(kind==='clothing'&&alive()&&o()[0]==='shop')stage(state.step+1);},job(kind,ok){if(alive()&&o()[0]===kind){if(ok)stage(state.step+1);else fail(kind==='taxi'?'The fare was lost.':'The paramedic run was interrupted.');}}};
  requestAnimationFrame(tick);
 })();
 
