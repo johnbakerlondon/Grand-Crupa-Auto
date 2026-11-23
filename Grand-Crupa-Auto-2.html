@@ -15922,6 +15922,13 @@ console.info("[gca-inst] static instance merge ready");
    ['The Spare Meter','Pick up Mihai’s spare meter outside the taxi rank and bring it to the dispatcher.','delivery',[[32,35],[96,32]],120,90],
    ['Last Shift Home','Collect a stranded driver at the west junction. Get them to the rank with a car.','rescue',[[-32,96],[32,32]],155,135],
    ['Three Green Lights','Drive across three junctions on Mihai’s night route before dispatch closes.','race',[[32,-32],[96,-32],[96,32]],90,165]]],
+  ['T','Tavi Rusu','#8a6a2f',544,32,'Depot fixer · East Freight','Runs odd jobs out of the east freight gate. Keeps a ledger in his head and a driver on standby.','Treaba e simplă.','The job is simple.',[
+   ['Cash Envelope','Ferry a cash envelope from the east depot to the fort approach without anyone official seeing the handoff.','delivery',[[544,32],[672,32],[790,32]],150,190],
+   ['Quiet Pickup','Collect a package from the south yard and bring it back to East Freight.','recovery',[[32,288],[96,288],[544,32]],210,250],
+   ['The Long Way Round','Lose the car behind you before you reach the depot gate.','watch',[[544,32],[288,32],[544,32]],180,280]]],
+  ['F','Tudor Crupa','#7b6a4f',-80,-110,'Stephen’s father · Flat 13','Retired fitter. Keeps the Cerna Touring running on patience and refuses to sell it to anyone.','Ai timp pentru tatăl tău?','Got time for your father?',[
+   ['Saturday Errands','Carry Dad’s toolbox to the workshop and bring the car back to the block.','delivery',[[-96,-96],[103,-27],[-96,-96]],260,130],
+   ['The Long Road Home','Drive Mum’s colleague from the hospital to the block before it gets dark.','rescue',[[-39,26],[-96,96],[-96,-96]],260,160]]],
   ['A','Ana Sava','#7759aa',-25,38,'Pub keeper · La Felinar','A former wedding singer who knows which regulars want company and which need quiet.','Ți-am păstrat o masă.','I saved you a table.',[
    ['Borrowed Speakers','Carry a pair of speaker cases from the square to La Felinar.','delivery',[[-32,-32],[-25,38]],155,110],
    ['The Late Set','Stop at two venues and collect the musicians before the evening set.','rescue',[[-96,32],[-32,96],[-25,38]],180,170],
@@ -17081,7 +17088,7 @@ window.__gcaManuscript={
  chapters:['I · The night shift','II · The duplicate key','III · The public record'],
  cast:{
   S:['Stephen','#527383','New arrival. Learns that staying is a choice, not a failure to leave.'],
-  M:['Mihai Lupu','#a9582f','Taxi driver and cousin. Starts by doing favors in private and ends by putting his livelihood behind a public statement.'],
+  M:['Mihai Lupu','#a9582f','Taxi driver and cousin. Dreams in fleets, borrows against next month, and says “cousin” like it is a job title.'],
   A:['Ana Sava','#7759aa','Pub keeper. Learns to let people speak rather than shielding them from every difficult conversation.'],
   D:['Doru Pavel','#356e9e','Mechanic. Stops working around a supplier who has been leaning on his workshop.'],
   I:['Ioana Munteanu','#31765c','Market vendor. Turns her habit of keeping receipts into protection for the other stallholders.'],
@@ -17089,41 +17096,75 @@ window.__gcaManuscript={
   V:['Victor Cernat','#536544','Retired signals officer. Names the order he once let stand and helps repair it.'],
   R:['Radu Ene','#ab4654','Night driver. Gives up winning a race so others can get home safely.'],
   U:['Major Mara Crupa','#667052','Stephen’s mother. An army logistics officer who signed an emergency transfer and kept its original dispatch record.'],
-  B:['Sorin Bălan','#785852','Depot contractor. Kept a struggling depot afloat by quietly turning a temporary agreement into permanent control.']
+  B:['Sorin Bălan','#785852','Depot contractor. Kept a struggling depot afloat by quietly turning a temporary agreement into permanent control.'],
+  F:['Tudor Crupa','#7b6a4f','Stephen’s father. Keeps a fifteen-year-old Cerna Touring alive with patience, spare parts and bad advice.'],
+  T:['Tavi Rusu','#8a6a2f','Fence and depot fixer. Pays in cash, never in writing, and calls every job a favour.']
  },
  missions:[
  {title:'The Spare Seat',ch:0,giver:'M',brief:'Mihai is near the rank. Take a real taxi fare before the city wakes.',reward:100,unlock:'Ana · La Felinar',site:[26,19],end:[32,32],
   goals:[['talk',26,19,'Meet Mihai on foot near the taxi rank.'],['taxi',31,24,'Use the taxi at the rank and complete one fare.']],
   intro:[['dolly','M','You can have a seat, or you can have a shift. The shift pays better.'],['ots','S','A shift. I can sit down when I know where I’m staying.']]},
- {title:'A Table by the Window',ch:0,giver:'A',brief:'Ana kept an envelope that a depot clerk never came back for. She wants it held somewhere public.',reward:130,unlock:'Ioana · Piața Mare',site:[-25,38],timer:150,
+ {title:'Two Cousins, One Cab',ch:0,giver:'M',brief:'Mihai has the cab, a full tank he cannot afford and a plan he wants to explain at speed.',reward:120,unlock:'Tavi · East Freight depot',site:[26,19],end:[544,32],
+  goals:[['talk',26,19,'Get in with Mihai at the rank.'],['drive',544,32,'Drive Mihai out to the east road while he explains the plan.'],['talk',544,32,'Stop on the shoulder and hear him out.']],
+  intro:[['dolly','M','Cousin! Get in. Tonight we are not a taxi. Tonight we are a taxi company.'],['ots','S','It is one car, Mihai.'],['dolly','M','One car today. Eight cars by spring. I have the whole thing in a notebook.'],['ots','S','Does the notebook say where the petrol money comes from?']],
+  outro:[['orbit','M','Lia writes that the pay abroad is good. I write back that I own a business. We are both lying politely.'],['ots','S','Then make the business real before she comes back.'],['dolly','M','See? This is why I keep you. Every company needs one pessimist.'],['orbit','S','Your meter is running, by the way. It has been running since the rank.'],['dolly','M','Ah. That is not pessimism. That is accounting.']]},
+ {title:'The Night Deposit',ch:0,giver:'T',brief:'Tavi needs a cash box moved off a depot lot before the morning shift. Nobody official is supposed to see it.',reward:170,unlock:'Ana · La Felinar',site:[544,32],end:[544,32],
+  goals:[['talk',544,32,'Meet Tavi at the East Freight depot.'],['go',672,32,'Walk into the depot yard and take the cash box.'],['deliver',544,32,'Carry the box back to Tavi at the gate.']],
+  intro:[['dolly','T','You are Mihai’s cousin. He said you are calm. I pay for calm.'],['ots','S','What is in the box?'],['dolly','T','A number. You do not have to like it. You just have to carry it.']],
+  outro:[['orbit','T','The manager will report a box missing. He will not report the box. That is how you know he took his cut already.'],['ots','S','And my cut?'],['dolly','T','Yours is the part where nobody writes your name down. Take the cash, cousin of Mihai.']]},
+ {title:'A Table by the Window',ch:0,giver:'A',brief:'Ana kept an envelope that a depot clerk never came back for. She wants it held somewhere public.',reward:150,unlock:'Tudor · the flat on the block',site:[-25,38],
   goals:[['talk',-25,38,'Ask Ana about the envelope at La Felinar.'],['deliver',-27,-39,'Bring the sealed envelope to Ioana at the market.']],
   intro:[['orbit','A','The clerk asked me not to open it. He never asked me to leave it here forever.'],['ots','S','I’ll take it to the market. Somewhere with witnesses.']]},
- {title:'Two Copies',ch:0,giver:'I',brief:'Compare the posted permit with Ioana’s original, then collect a marked work jacket at Crupa Threads.',reward:165,unlock:'Doru · Izvoare workshop',site:[-27,-39],timer:175,
+ {title:'The Cerna Touring',ch:0,giver:'F',brief:'Dad’s Cerna Touring was towed off the block at dawn. He wants it driven home, quietly, before anyone official notices.',reward:210,unlock:'Ioana · Piața Mare',site:[-96,-96],end:[-96,-96],
+  goals:[['talk',-96,-96,'Talk to Dad and Mum outside the block.'],['go',-288,-32,'Find the Cerna Touring in the west impound lot.'],['deliver',-96,-96,'Drive the Cerna Touring back to the block and park it outside.']],
+  intro:[['dolly','F','They took the Cerna off the block at six this morning. Fifteen years I have kept that car out of their yard.'],['ots','S','You want me to steal it back.'],['dolly','F','I want you to drive it back. There is a difference and I would like to keep it.'],['orbit','U','Your father has been standing at that window since six. Take the keys.'],['ots','S','The keys went with the car.'],['dolly','U','Then take the spare. And Stephen — drive like your father is watching. He will be.']],
+  outro:[['orbit','F','They put a boot on it and a paper on the windscreen. I did not read the paper.'],['ots','S','I did. The car was reported abandoned. By a neighbour.'],['dolly','F','Which neighbour?'],['orbit','S','The one who owns the yard.'],['dolly','U','Then tomorrow we go and be polite to him. Tonight the car is home.'],['ots','F','Your mother is a better negotiator than me. Do not tell her.']]},
+ {title:'Two Copies',ch:1,giver:'I',brief:'Compare the posted permit with Ioana’s original, then collect a marked work jacket at Crupa Threads.',reward:185,unlock:'Tavi · East Freight depot',site:[-27,-39],
   goals:[['talk',-27,-39,'Ask Ioana where the permit was posted.'],['go',-96,-32,'Read the permit posted at the western junction.'],['shop',-96,-32,'Enter Crupa Threads to collect the marked jacket. No purchase required.'],['deliver',103,-27,'Take both copies to Doru’s workshop.']],
   intro:[['dolly','I','I keep two copies. One for the person who pays, one for the person who says they paid.'],['ots','S','Different stamps. Same morning. Someone wanted both to look ordinary.']]},
- {title:'Test Route',ch:0,giver:'D',brief:'Doru lends Stephen a workshop car and asks him to check if the detour is usable under a time limit.',reward:210,unlock:'Elena · Clinic entrance',site:[103,-27],
-  goals:[['talk',103,-27,'Meet Doru by the workshop.'],['drive',96,29,'Get into a car and cross the first test marker.'],['race',160,32,'Drive to the second marker within 65 seconds.',65],['race',160,96,'Finish the timed detour at the third marker.',55]],
+ {title:'Muscle at the Market',ch:1,giver:'T',brief:'A stallholder stopped paying Tavi’s market fee. Tavi wants the money collected where everyone can see it.',reward:230,unlock:'Doru · Izvoare workshop',site:[-27,-39],end:[-27,-39],
+  goals:[['talk',-27,-39,'Meet Tavi by the market stalls.'],['wanted',32,96,'Shake the south stall and stay ahead of the police for twelve seconds.'],['deliver',-27,-39,'Take the envelope back to Tavi at the market.']],
+  intro:[['dolly','T','You see this? Everyone sees this. That is the point. A fee nobody sees is charity.'],['ots','S','And the man who pays it?'],['dolly','T','He pays once and tells everyone. Very efficient.']],
+  outro:[['orbit','T','You lost them faster than my driver. Maybe you should drive for me.'],['ots','S','Maybe I should keep walking.'],['dolly','T','Walking never paid anybody’s rent, cousin of Mihai.']]},
+ {title:'Test Route',ch:1,giver:'D',brief:'Doru lends Stephen a workshop car and asks him to check if the detour is usable under a time limit.',reward:235,unlock:'Elena · Clinic entrance',site:[103,-27],
+  goals:[['talk',103,-27,'Meet Doru by the workshop.'],['drive',96,29,'Get into a car and cross the first test marker.'],['race',160,32,'Drive to the second marker within 110 seconds.',110],['race',160,96,'Finish the timed detour at the third marker.',95]],
   intro:[['orbit','D','That rattle’s the fan. The thing you should listen for is the road going quiet.'],['ots','S','Because if there’s no traffic, everyone already knows the road’s shut.']]},
- {title:'Ten Minutes',ch:1,giver:'E',brief:'Elena puts the detour to a real test: a patient needs an ambulance run to the hospital.',reward:240,unlock:'Victor · Memorial junction',site:[-39,26],
+ {title:'Ten Minutes',ch:1,giver:'E',brief:'Elena puts the detour to a real test: a patient needs an ambulance run to the hospital.',reward:250,unlock:'Tavi · East Freight depot',site:[-39,26],
   goals:[['talk',-39,26,'Meet Elena outside the hospital.'],['ambulance',-35,30,'Use the ambulance and finish the existing paramedic run.']],
   intro:[['dolly','E','Everybody says it’s a ten-minute detour. Nobody says who has ten minutes to spare.'],['ots','S','Keep the bay clear. I’ll take the run.']]},
- {title:'The Duplicate Key',ch:1,giver:'V',brief:'Victor has the original dispatch book. Stephen finally learns why his mother sent him and who signed the transfer.',reward:270,unlock:'Radu · Riverside test route',site:[-100,-90],end:[-96,-96],
+ {title:'A Favour for Tavi',ch:1,giver:'T',brief:'A car is waiting at the fort with the keys in it. Tavi’s buyer has a garage on the east side of town.',reward:310,unlock:'Victor · Memorial junction',site:[790,32],end:[288,-96],
+  goals:[['talk',790,32,'Meet Tavi on the fort approach road.'],['drive',288,-96,'Take the car to the buyer’s garage across the east blocks.']],
+  intro:[['dolly','T','Fort gate, blue sedan, keys under the mat. Do not look at the soldiers.'],['ots','S','And if they look at me?'],['dolly','T','Then smile. You are a tourist. Tourists are everywhere.'],['ots','S','Tourists do not usually arrive at a fort at two in the morning.'],['dolly','T','The interesting ones do.']],
+  outro:[['orbit','T','Buyer says the car smelled like a soldier. I said all cars smell like something.'],['ots','S','Next time find one that smells like nobody.'],['dolly','T','That is the expensive kind. Maybe when the cab company pays out.']]},
+ {title:'The Duplicate Key',ch:1,giver:'V',brief:'Victor has the original dispatch book. Stephen finally learns why his mother sent him and who signed the transfer.',reward:290,unlock:'Radu · Riverside test route',site:[-100,-90],end:[-96,-96],
   goals:[['talk',-100,-90,'Talk to Victor at the memorial.'],['go',-160,-96,'Find the duplicate key at the old signals cabinet.'],['deliver',-96,-96,'Bring the dispatch book and key to the rendezvous.']],
   intro:[['dolly','V','Bălan didn’t forge the signature. It’s hers. What he changed was how long the transfer lasted.'],['ots','U','I signed for one night. When it became a month, I kept the original and said nothing. That part is mine.']],
   outro:[['orbit','S','You didn’t send me here to clear your name. You sent me to find the people on the other side of it.'],['ots','U','I sent you because I was ashamed to come first. I’m here now.']]},
- {title:'A Race Worth Losing',ch:1,giver:'R',brief:'Drive Radu’s established Riverside Split. Stay close enough to see where Bălan’s courier is headed.',reward:300,unlock:'Old depot approach',site:[169,30],
+ {title:'A Race Worth Losing',ch:2,giver:'R',brief:'Drive Radu’s established Riverside Split. Stay close enough to see where Bălan’s courier is headed.',reward:320,unlock:'Tavi · East Freight depot',site:[169,30],
   goals:[['talk',169,30,'Meet Radu by the riverside.'],['drive',160,32,'Bring a car to the chalk start line.'],['tail',160,96,'Follow the lead to the riverside split.'],['tail',224,96,'Hold your distance to the second split.'],['tail',224,32,'Follow the turn toward the depot road.']],
   intro:[['orbit','R','The fastest line takes you past the turn he actually uses. Today you want second place.'],['ots','S','I can live with second. Especially if you’re the one explaining it later.']]},
- {title:'An Open Channel',ch:2,giver:'M',brief:'Bălan reports the book stolen. Let police attention settle before taking the copy to Ana.',reward:340,unlock:'La Felinar public meeting',site:[26,19],
-  goals:[['talk',26,19,'Meet Mihai and take the copy of the dispatch.'],['wanted',32,32,'Stay mobile for 12 seconds, then lose the wanted level.',150],['deliver',-25,38,'Deliver the copy to Ana without a wanted level.']],
+ {title:'Bad Debts',ch:2,giver:'T',brief:'A courier took Tavi’s money south and stopped answering. Tavi has an address and no patience.',reward:350,unlock:'Tavi · East Freight depot',site:[32,288],end:[32,288],
+  goals:[['talk',32,288,'Meet Tavi at the south depot.'],['go',96,288,'Check the yard behind the south depot.'],['go',32,224,'Follow the courier’s trail back to the flats.'],['deliver',32,288,'Bring what you found back to Tavi.']],
+  intro:[['dolly','T','He was reliable for two years. Two years is a long time to be reliable and then be stupid.'],['ots','S','What do you want back?'],['dolly','T','The money. If the money is gone, I want the reason. Reasons are cheaper.']],
+  outro:[['orbit','T','So he gambled it. In a room I sent him to. That is almost my money coming home.'],['ots','S','He is scared of you, not sorry.'],['dolly','T','Good. Scared pays on time.']]},
+ {title:'The Getaway',ch:2,giver:'T',brief:'Tavi’s crew is inside a warehouse on the east road. He needs a car at the loading door and a driver who does not ask.',reward:390,unlock:'Mihai · the taxi rank',site:[672,32],end:[544,32],
+  goals:[['talk',672,32,'Meet Tavi outside the warehouse.'],['wanted',672,32,'Wait at the loading door until the alarm goes, then lose the police.',150],['drive',544,32,'Get the crew’s car back onto the city road.']],
+  intro:[['dolly','T','Two minutes. If the door is still shut at three, drive away and I do not know you.'],['ots','S','And if it opens?'],['dolly','T','Then you know me very well.']],
+  outro:[['orbit','T','Crew says you did not say one word the whole way. They liked that.'],['ots','S','I was listening to the road.'],['dolly','T','Keep listening. That is a career.']]},
+ {title:'An Open Channel',ch:2,giver:'M',brief:'Bălan reports the book stolen. Let police attention settle before taking the copy to Ana.',reward:360,unlock:'Mihai · the taxi rank',site:[26,19],
+  goals:[['talk',26,19,'Meet Mihai and take the copy of the dispatch.'],['wanted',32,32,'Stay mobile for twelve seconds, then lose the wanted level.',150],['deliver',-25,38,'Deliver the copy to Ana without a wanted level.']],
   intro:[['dolly','M','The depot called it theft. Dispatch can hear their version, or it can hear mine too.'],['ots','S','Tell them where I’m going. I’d rather have a route on record than a hiding place.']]},
- {title:'Seats for Everyone',ch:2,giver:'A',brief:'Escort Ioana’s statement to the market. Ana has opened the meeting to the stallholders and the depot crew.',reward:390,unlock:'Municipal hearing · West square',site:[-25,38],
+ {title:'Cousin, Sit Down',ch:2,giver:'M',brief:'Mihai has a letter from Lia and a decision he does not want to make alone. He wants to drive.',reward:280,unlock:'Ana · La Felinar',site:[26,19],end:[-288,32],
+  goals:[['talk',26,19,'Get in with Mihai at the rank.'],['drive',-288,32,'Drive Mihai out to the reservoir road.'],['talk',-288,32,'Park the cab and let him talk.']],
+  intro:[['dolly','M','Cousin. Do not say anything clever. Just drive.'],['ots','S','That is the first time you have ever asked me that.'],['dolly','M','Lia is coming back in June. She thinks I have a company, a flat and a plan.'],['ots','S','And what do you have?']],
+  outro:[['orbit','M','I have a car with somebody else’s meter, a flat with two chairs, and a cousin who came home for a funeral and stayed.'],['ots','S','I stayed because you kept writing.'],['dolly','M','I wrote lies. Good ones. The kind that keep a family standing.'],['orbit','S','Then let her meet the man who wrote them. Not the company. You.'],['ots','M','You know, for a man who never talks, you are very good at this.'],['dolly','S','I had a good teacher. He talked enough for both of us.']]},
+ {title:'Seats for Everyone',ch:2,giver:'A',brief:'Escort Ioana’s statement to the market. Ana has opened the meeting to the stallholders and the depot crew.',reward:410,unlock:'Mara · the memorial',site:[-25,38],
   goals:[['talk',-25,38,'Check in with Ana before walking out.'],['escort',-32,32,'Walk with the witness to the first corner.'],['escort',-32,-32,'Stay with the witness through the square.'],['deliver',-27,-39,'Deliver the signed statement to Ioana.']],
   intro:[['orbit','A','I put out twelve chairs, then stopped counting. If Bălan comes, he gets one too.'],['ots','I','I’ll read the receipts myself. Nobody has to speak for me this time.']]},
  {title:'Lights Across the Bistrița',ch:2,giver:'U',brief:'Bring the record to the hearing. Keep the crossing open without making the depot workers pay for Bălan’s decision.',reward:600,unlock:'Campaign complete · district apartment · courtesy car · full cutscene gallery',site:[-100,-90],end:[-96,32],
   goals:[['talk',-100,-90,'Meet Major Mara at the memorial.'],['deliver',-96,32,'Deliver the record to the public hearing.'],['talk',-96,32,'Hear Bălan’s reply in the west square.']],
   intro:[['dolly','U','I’ll say what I signed, and I’ll say what I didn’t. You don’t need to soften either part.'],['ots','S','You can start. I’ll be there when you finish.']],
-  outro:[['orbit','B','I kept twenty people working through winter. I told myself that made the second stamp all right.'],['ots','U','Then show up next week and help us write the agreement we should have had. In the open.'],['dolly','S','The crossing was open by morning. Mum asked if I was coming home. This time, I asked her which one.']]}
+  outro:[['orbit','B','I kept twenty people working through winter. I told myself that made the second stamp all right.'],['ots','U','Then show up next week and help us write the agreement we should have had. In the open.'],['dolly','M','I parked the cab outside. If this runs long I am putting the meter on.'],['ots','S','You would charge the city for a hearing.'],['orbit','M','I would charge the city for the parking.'],['dolly','S','The crossing was open by morning. Mum asked if I was coming home. This time, I asked her which one.']]}
  ]
 };
 
@@ -17134,7 +17175,7 @@ window.__gcaManuscript={
  const G=window.__gca,T=window.__GCA_T,U=window.__arrivalUI,W=G.world,P=G.player,C=window.__arrivalContacts,F=window.__gcaPhone,M=window.__gcaManuscript;
  const {missions,chapters,cast}=M, scene=W.scene;
  const all=C.list.map(c=>c.id);
- const state={mode:false,index:0,step:0,phase:'off',time:null,seen:[],checkpoint:null,unlocked:['M'],finished:[],wantedTime:0,suspended:false};
+ const state={mode:false,index:0,nextIndex:0,step:0,phase:'off',time:null,seen:[],checkpoint:null,unlocked:['M'],finished:[],wantedTime:0,suspended:false};
  let last=0,car=null,service=null,guide=null,beat=null,tracking=0,noticeUntil=0,voice=null,held=0,hero=null;
  const now=()=>performance.now(),pos=()=>P.vehicle||P.pos,dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
  const point=(x,z,name)=>({x,z,name}),safe=U.safe;
@@ -17204,9 +17245,9 @@ window.__gcaManuscript={
   card.hidden=false;card.innerHTML=`<small>${safe(kind)}</small><h2>${safe(title)}</h2><p>${safe(details)}</p>${button}`;
   noticeUntil=button?Infinity:now()+4500;
  }
- function start(index){cleanService();unlinkGuide();state.index=index;state.step=0;state.phase='active';window.__arrivalMap.clear();const q=m();if(!q){state.phase='complete';return;}
+ function start(index){card.hidden=true;noticeUntil=0;cleanService();unlinkGuide();state.index=index;state.step=0;state.phase='active';window.__arrivalMap.clear();const q=m();if(!q){state.phase='complete';return;}
   state.checkpoint=checkpoint();stage(0,true);F.receive(q.giver,q.brief,index===0||index===5,cast[q.giver][0]);}
- function begin(story){cleanService();unlinkGuide();F.reset();Object.assign(state,{mode:story,index:0,step:0,phase:story?'active':'off',time:null,seen:[],checkpoint:null,unlocked:story?['M']:[...all],finished:[],wantedTime:0,suspended:false});card.hidden=true;if(story){start(0);window.__gcaSave.autosave();}}
+ function begin(story){cleanService();unlinkGuide();F.reset();Object.assign(state,{mode:story,index:0,nextIndex:0,step:0,phase:story?'active':'off',time:null,seen:[],checkpoint:null,unlocked:story?['M']:[...all],finished:[],wantedTime:0,suspended:false});card.hidden=true;if(story){start(0);window.__gcaSave.autosave();}}
  function fail(reason){
   if(!alive()||G.settings.sandbox)return;
   state.phase='failed';state.suspended=false;unlinkGuide();window.__arrivalMap?.clear();G.audio.deny?.();
@@ -17224,7 +17265,7 @@ window.__gcaManuscript={
   }
   stage(state.step,true);
  }
- card.onclick=e=>{if(e.target.closest('[data-retry]'))retry();else if(e.target.closest('[data-dismiss]'))dismiss();};
+ card.onclick=e=>{if(e.target.closest('[data-retry]'))retry();else if(e.target.closest('[data-dismiss]'))dismiss();else if(e.target.closest('[data-start]'))startNext();else if(e.target.closest('[data-later]')){card.hidden=true;noticeUntil=0;G.audio.click?.();}};
  function finishMission(q){
   if(state.finished.includes(state.index))return;
   const n=state.index,next=missions[n+1];state.finished.push(n);
@@ -17238,10 +17279,22 @@ window.__gcaManuscript={
    const dest=apt?point(apt.x,apt.z):point(-96,32);
    const v=motor('sedan',dest);if(v){v.color=0x3e6870;service=null;}
    F.receive('U','The crossing is open. Come by when you feel like calling it home.',false,cast.U[0]);
-  }else start(n+1);
+  }else{
+   state.nextIndex=n+1;state.phase='ready';state.time=null;unlinkGuide();window.__arrivalMap?.clear();
+   showReady(next);
+  }
   window.__gcaSave.autosave();
  }
- function pass(){const q=m();unlinkGuide();state.phase='finishing';state.time=null;
+ function showReady(q){
+  if(!q)return;
+  F.receive(q.giver,q.brief,false,cast[q.giver][0]);
+  if(G.settings.sandbox){card.hidden=true;noticeUntil=0;return;}
+  card.hidden=false;
+  card.innerHTML=`<small>Job lined up</small><h2>${safe(q.title)}</h2><p>${safe(q.brief)}</p><p>Take your time. The next job keeps until you call it in.</p><button type="button" data-start>Start next mission</button><button type="button" data-later>Later</button>`;
+  noticeUntil=Infinity;
+}
+function startNext(){if(state.phase!=='ready')return;const q=missions[state.nextIndex];if(!q)return;start(state.nextIndex);F.lower();window.__gcaSave.autosave();}
+function pass(){const q=m();unlinkGuide();state.phase='finishing';state.time=null;
   if(q.outro)play(q,'outro',q.end||q.site,()=>finishMission(q));else finishMission(q);
  }
  function actor(id){
@@ -17358,6 +17411,7 @@ window.__gcaManuscript={
  const prev=U.action;
  U.action=a=>{
   if(a==='storyRetry'){U.act('resume');retry();return;}
+  if(a==='storyStart'){U.act('resume');startNext();return;}
   if(a==='storyRoute'){window.__arrivalMap.clear();U.show('Map',true);return;}
   if(a==='storyGallery'){U.main.querySelector('#story-gallery')?.scrollIntoView({block:'start'});return;}
   if(a.startsWith('storyScene:')){const [,i,k]=a.split(':'),q=missions[+i];if(!q||!state.finished.includes(+i)||!q[k])return;U.act('resume');play(q,k,k==='outro'?(q.end||q.site):q.site,()=>{G.openPause();U.show('Story',true);});return;}
@@ -17365,7 +17419,7 @@ window.__gcaManuscript={
  };
  U.custom.Story=main=>{
   if(!state.mode){main.innerHTML='<h2>Story</h2><p>This session is Free Roam. Choose New Game · Story from the title to begin the campaign.</p>';return;}
-  const q=m();main.innerHTML=`<h2>Story · Lights Across the Bistrița</h2><p>${state.finished.length} / ${missions.length} complete · ${state.unlocked.length} friends introduced</p>${state.phase==='complete'?'<p>Crossing open. The campaign is complete.</p>':q?`<div class="ap-brief-head"><small>Current mission</small><h3>${safe(q.title)}</h3><p>${safe(q.brief)}</p><p>${safe(o()?.[3]||'')}</p>${U.buttons([['storyRoute','Show route'],...(state.phase==='failed'?[['storyRetry','Retry checkpoint']]:[])])}</div>`:''}${U.buttons([['storyGallery','Cutscenes gallery']])}`+
+  const q=m(),nx=state.phase==='ready'?missions[state.nextIndex]:null;main.innerHTML=`<h2>Story · Lights Across the Bistrița</h2><p>${state.finished.length} / ${missions.length} complete · ${state.unlocked.length} friends introduced</p>${state.phase==='complete'?'<p>Crossing open. The campaign is complete.</p>':nx?`<div class="ap-brief-head"><small>Next job ready</small><h3>${safe(nx.title)}</h3><p>${safe(nx.brief)}</p><p>${safe(cast[nx.giver][0])} · $${nx.reward} · whenever you are ready</p>${U.buttons([['storyStart','Start next mission'],['storyRoute','Show route']])}</div>`:q?`<div class="ap-brief-head"><small>Current mission</small><h3>${safe(q.title)}</h3><p>${safe(q.brief)}</p><p>${safe(o()?.[3]||'')}</p>${U.buttons([['storyRoute','Show route'],...(state.phase==='failed'?[['storyRetry','Retry checkpoint']]:[])])}</div>`:''}${U.buttons([['storyGallery','Cutscenes gallery']])}`+
   chapters.map((ch,j)=>`<h3>${safe(ch)}</h3><div class="ap-list">${missions.map((q,i)=>q.ch!==j?'':`<article><small>${state.finished.includes(i)?'Complete':i===state.index?'Current':'Locked'}</small><h3>${safe(q.title)}</h3><p>${safe(cast[q.giver][0])} · $${q.reward}</p></article>`).join('')}</div>`).join('')+
   `<h3 id="story-gallery">Cutscenes gallery</h3>${state.finished.length?'':'<p>Complete a mission to unlock its scenes.</p>'}<div class="ap-list">${state.finished.map(i=>{const q=missions[i];return `<article><h3>${safe(q.title)}</h3>${U.buttons([...(q.intro?[[`storyScene:${i}:intro`,'Play intro']]:[]),...(q.outro?[[`storyScene:${i}:outro`,'Play outro']]:[])])}</article>`;}).join('')}</div>`;
  };
@@ -17373,11 +17427,12 @@ window.__gcaManuscript={
   cleanService();unlinkGuide();card.hidden=true;noticeUntil=0;
   if(!d?.mode){Object.assign(state,{mode:false,phase:'off',finished:[],seen:[],unlocked:[...all]});return;}
   const index=normalize(d.index,missions.length-1),q=missions[index],step=normalize(d.step,q.goals.length-1),clean=v=>Array.isArray(v)?[...new Set(v.filter(n=>Number.isInteger(n)&&n>=0&&n<missions.length))]:[];
-  Object.assign(state,{mode:true,index,step,suspended:!!d.suspended,phase:['complete','failed'].includes(d.phase)?d.phase:'active',time:Number.isFinite(d.time)?d.time:null,seen:clean(d.seen),finished:clean(d.finished),unlocked:Array.isArray(d.unlocked)?d.unlocked.filter(id=>all.includes(id)):['M'],checkpoint:d.checkpoint,wantedTime:Number.isFinite(d.wantedTime)?d.wantedTime:0});
+  Object.assign(state,{mode:true,index,step,suspended:!!d.suspended,phase:['complete','failed','ready'].includes(d.phase)?d.phase:'active',time:Number.isFinite(d.time)?d.time:null,seen:clean(d.seen),finished:clean(d.finished),unlocked:Array.isArray(d.unlocked)?d.unlocked.filter(id=>all.includes(id)):['M'],checkpoint:d.checkpoint,wantedTime:Number.isFinite(d.wantedTime)?d.wantedTime:0});
+  if(state.phase==='ready'){state.nextIndex=normalize(d.nextIndex,missions.length-1);showReady(missions[state.nextIndex]);}
   if(state.phase==='failed'&&!state.suspended)toast('Mission failed',q.title,'Retry the saved checkpoint.','<button type="button" data-retry>Retry checkpoint</button><button type="button" data-dismiss>Dismiss · keep playing</button>');
   if(state.phase==='active'){const t=state.time,w=state.wantedTime;stage(step,true,true);state.time=t;state.wantedTime=w;}
  }});
- window.__districtStory={begin,missions,chapters,cast,get active(){return state.mode;},get current(){return m()&&state.mode?{index:state.index,step:state.step,phase:state.phase,title:m().title,instruction:o()?.[3]}:null;},get target(){return G.settings.sandbox?null:target();},get guide(){return guide&&{x:guide.p.x,z:guide.p.z};},get cut(){return !!beat;},unlocked:id=>!state.mode||state.unlocked.includes(id),shop(kind){if(kind==='clothing'&&alive()&&o()[0]==='shop')stage(state.step+1);},job(kind,ok){if(alive()&&o()[0]===kind){if(ok)stage(state.step+1);else fail(kind==='taxi'?'The fare was lost.':'The paramedic run was interrupted.');}}};
+ window.__districtStory={begin,missions,chapters,cast,get active(){return state.mode;},get current(){return m()&&state.mode?{index:state.index,step:state.step,phase:state.phase,title:m().title,instruction:o()?.[3]}:null;},get target(){return G.settings.sandbox?null:target();},get next(){return state.phase==='ready'&&missions[state.nextIndex]?{index:state.nextIndex,title:missions[state.nextIndex].title}:null;},get guide(){return guide&&{x:guide.p.x,z:guide.p.z};},get cut(){return !!beat;},unlocked:id=>!state.mode||state.unlocked.includes(id),shop(kind){if(kind==='clothing'&&alive()&&o()[0]==='shop')stage(state.step+1);},job(kind,ok){if(alive()&&o()[0]===kind){if(ok)stage(state.step+1);else fail(kind==='taxi'?'The fare was lost.':'The paramedic run was interrupted.');}}};
  requestAnimationFrame(tick);
 })();
 
